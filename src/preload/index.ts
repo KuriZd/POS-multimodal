@@ -1,13 +1,18 @@
-// src/preload/index.ts
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron'
 
-const api = {
+console.log('PRELOAD CARGADO')
+
+contextBridge.exposeInMainWorld('pos', {
+  auth: {
+    login: (username: string, password: string) =>
+      ipcRenderer.invoke('auth:login', username, password),
+    me: () => ipcRenderer.invoke('auth:me'),
+    logout: () => ipcRenderer.invoke('auth:logout')
+  },
   products: {
     findByCode: (code: string) => ipcRenderer.invoke('products:findByCode', code)
   },
   sync: {
     pullProducts: () => ipcRenderer.invoke('sync:pullProducts')
   }
-};
-
-contextBridge.exposeInMainWorld('pos', api);
+})
