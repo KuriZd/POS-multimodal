@@ -1,4 +1,20 @@
 export const localSchema = `
+CREATE TABLE IF NOT EXISTS "User" (
+  id INTEGER PRIMARY KEY,
+  username TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  "passwordHashLocal" TEXT,
+  "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "lastRemoteLoginAt" TEXT,
+  "deletedAt" TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_username
+  ON "User"(username);
+
 CREATE TABLE IF NOT EXISTS "Product" (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   "publicId" TEXT NOT NULL UNIQUE,
@@ -94,4 +110,4 @@ CREATE TABLE IF NOT EXISTS device_config (
 
 CREATE INDEX IF NOT EXISTS idx_product_code ON "Product"(sku, barcode);
 CREATE INDEX IF NOT EXISTS idx_sync_queue_status ON sync_queue(status);
-`;
+`
