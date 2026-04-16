@@ -1,0 +1,238 @@
+/*Loginpage*/
+
+/* 
+  Contenedor principal del login.
+  Ocupa todo el alto de la ventana para centrar la tarjeta.
+*/
+.wrapper {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e6e6e6;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+/* 
+  Tarjeta principal del login.
+  Mantiene el diseño limpio y centrado.
+*/
+.card {
+  position: relative;
+  width: min(100%, 680px);
+  min-height: 560px;
+  background: #f7f7f7;
+  border: 1px solid #2f2f2f;
+  border-radius: 12px;
+  padding: 48px 28px 40px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 
+  Línea decorativa vertical del lado derecho.
+  Replica el detalle visual del diseño original.
+*/
+.card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  border-radius: 0 12px 12px 0;
+  background: linear-gradient(to bottom,
+      #62d97d 0%,
+      #62d97d 33%,
+      #5b79ff 33%,
+      #5b79ff 66%,
+      #ff6f61 66%,
+      #ff6f61 100%);
+}
+
+/* 
+  Título de la papelería.
+  Se usa clamp para responder mejor en distintos anchos.
+*/
+.title {
+  margin: 0;
+  font-size: clamp(2rem, 2.4vw, 2.8rem);
+  font-weight: 500;
+  color: #111111;
+  text-align: center;
+}
+
+/* 
+  Contenedor del logo.
+  Se separa del título y del formulario para respirar visualmente.
+*/
+.logoContainer {
+  margin-top: 34px;
+  margin-bottom: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 
+  Tamaño del logo.
+  Puede cambiarse aquí sin tocar JSX.
+*/
+.logo {
+  width: 78px;
+  height: 78px;
+  object-fit: contain;
+}
+
+/* 
+  Contenedor del formulario.
+  Limitamos su ancho para mantener proporción visual.
+*/
+.form {
+  width: min(100%, 430px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 
+  Inputs base del login.
+*/
+.input {
+  width: 100%;
+  height: 52px;
+  border: 1px solid #bdbdbd;
+  border-radius: 12px;
+  background: #fafafa;
+  padding: 0 18px;
+  font-size: 1rem;
+  color: #1c1c1c;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* 
+  Placeholder de inputs.
+*/
+.input::placeholder {
+  color: #5f5f5f;
+}
+
+/* 
+  Estado focus para mejorar usabilidad.
+*/
+.input:focus {
+  border-color: #8b8b8b;
+  background: #ffffff;
+}
+
+/* 
+  Estado disabled para evitar interacción durante el login.
+*/
+.input:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+/* 
+  Botón principal del formulario.
+*/
+.button {
+  width: min(100%, 340px);
+  height: 54px;
+  margin: 28px auto 0;
+  border: none;
+  border-radius: 8px;
+  background: #2d2d2d;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease,
+    background 0.15s ease;
+}
+
+/* 
+  Estado hover del botón.
+*/
+.button:hover {
+  opacity: 0.96;
+}
+
+/* 
+  Estado activo del botón.
+*/
+.button:active {
+  transform: scale(0.99);
+}
+
+/* 
+  Estado disabled del botón.
+*/
+.button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* 
+  Botón secundario para recuperación.
+*/
+.forgotButton {
+  margin-top: 44px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #2e2e2e;
+  font-size: 0.95rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* 
+  Mensaje de error del formulario.
+*/
+.error {
+  margin: 2px 0 0;
+  color: #d32f2f;
+  font-size: 0.92rem;
+  text-align: center;
+}
+
+/* 
+  Ajustes responsivos para pantallas pequeñas.
+*/
+@media (max-width: 640px) {
+  .wrapper {
+    padding: 16px;
+  }
+
+  .card {
+    min-height: auto;
+    padding: 36px 20px 32px;
+  }
+
+  .logoContainer {
+    margin-top: 28px;
+    margin-bottom: 42px;
+  }
+
+  .logo {
+    width: 64px;
+    height: 64px;
+  }
+
+  .button {
+    width: 100%;
+  }
+
+  .forgotButton {
+    margin-top: 34px;
+    font-size: 0.9rem;
+  }
+}

@@ -2,22 +2,22 @@
 /// <reference types="vite/client" />
 
 interface ProductLookup {
-  publicId: string;
-  sku: string;
-  barcode: string | null;
-  name: string;
-  price: number;
-  stock: number;
-  active: number;
+  publicId: string
+  sku: string
+  barcode: string | null
+  name: string
+  price: number
+  stock: number
+  active: number
 }
 
 interface Window {
   pos: {
     products: {
-      findByCode: (code: string) => Promise<ProductLookup | null>;
-    };
+      findByCode: (code: string) => Promise<ProductLookup | null>
+    }
     sync: {
-      pullProducts: () => Promise<{ ok: boolean; count: number }>;
-    };
-  };
+      pullProducts: () => Promise<{ ok: boolean; count: number }>
+    }
+  }
 }
