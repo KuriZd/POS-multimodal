@@ -1,11 +1,11 @@
-import 'dotenv/config';
-import { createClient } from '@supabase/supabase-js';
+import 'dotenv/config'
+import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Faltan SUPABASE_URL o SUPABASE_ANON_KEY');
+  throw new Error('Faltan SUPABASE_URL o SUPABASE_ANON_KEY')
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -14,4 +14,4 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: false,
     detectSessionInUrl: false
   }
-});
+})
