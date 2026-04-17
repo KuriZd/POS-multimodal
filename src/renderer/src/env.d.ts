@@ -30,6 +30,20 @@ interface Window {
     }
     products: {
       findByCode: (code: string) => Promise<ProductLookup | null>
+      create: (payload: import('./types/pos').CreateProductPayload) => Promise<{ id: number }>
+      list: (args: import('./types/pos').ProductsListArgs) => Promise<import('./types/pos').ProductsListResult>
+      get: (id: number) => Promise<import('./types/pos').ProductDetails>
+      getBySku?: (sku: string) => Promise<import('./types/pos').ProductDetails | null>
+      update: (id: number, payload: Partial<import('./types/pos').CreateProductPayload>) => Promise<{ id: number } | void>
+      remove: (id: number) => Promise<{ ok: true }>
+    }
+    services: {
+      list: (args: import('./types/pos').ServicesListArgs) => Promise<import('./types/pos').ServicesListResult>
+      get: (id: number) => Promise<import('./types/pos').ServiceDetails>
+      getByCode?: (code: string) => Promise<import('./types/pos').ServiceDetails | null>
+      create: (payload: import('./types/pos').CreateServicePayload) => Promise<{ id: number } | void>
+      update: (id: number, payload: Partial<import('./types/pos').CreateServicePayload>) => Promise<{ id: number } | void>
+      remove: (id: number) => Promise<{ ok: true }>
     }
     sync: {
       pullProducts: () => Promise<{ ok: boolean; count: number }>

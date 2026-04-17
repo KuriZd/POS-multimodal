@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactElement } from 'react'
 import LoginPage from './pages/LoginPage'
-import MainPage from './pages/MainPage'
+import AppLayout from './components/layout/AppLayout'
 
 export default function App(): ReactElement {
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -32,7 +32,7 @@ export default function App(): ReactElement {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontFamily: 'sans-serif',
+          fontFamily: 'Arial, Helvetica, sans-serif',
           background: '#e6e6e6'
         }}
       >
@@ -45,5 +45,5 @@ export default function App(): ReactElement {
     return <LoginPage onLoginSuccess={(loggedUser) => setUser(loggedUser)} />
   }
 
-  return <MainPage user={user} onLogout={() => setUser(null)} />
+  return <AppLayout user={user} onLogout={() => setUser(null)} />
 }
