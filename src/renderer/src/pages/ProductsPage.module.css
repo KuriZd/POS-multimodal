@@ -1,0 +1,307 @@
+.page {
+  height: calc(100vh - 56px - 32px);
+  background: #dde6f5;
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.panel {
+  height: 100%;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.12);
+  padding: 16px;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 12px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.searchWrap {
+  flex: 1;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #d7dbe6;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.searchInput {
+  width: 100%;
+  border: 0;
+  outline: none;
+  font-size: 14px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid #d7dbe6;
+  background: #eef2ff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btnGhost {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid #d7dbe6;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.select {
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #d7dbe6;
+  padding: 0 10px;
+  background: #fff;
+}
+
+.tableWrap {
+  border: 1px solid #d7dbe6;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.tableHeader {
+  background: #dbe7ff;
+  display: grid;
+  grid-template-columns: 60px 1fr 140px 140px 180px 110px;
+  padding: 10px 12px;
+  font-weight: 700;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 60px 1fr 140px 140px 180px 110px;
+  padding: 10px 12px;
+  border-top: 1px solid #e6e8ef;
+  align-items: center;
+}
+
+.muted {
+  opacity: 0.75;
+  font-size: 12px;
+}
+
+.actionsCell {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.iconBtn {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  border: 1px solid #cfd6e6;
+  background: #fff;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+
+.iconBtnEdit {
+  background: #b7f36a;
+  border-color: #7fd12b;
+}
+
+.iconBtnDelete {
+  background: #ff5a5a;
+  border-color: #e73b3b;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.pageBtn {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid #d7dbe6;
+  background: #fff;
+  cursor: pointer;
+}
+
+.pageBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Add dropdown --- */
+.addMenuWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 6px 14px rgba(16, 24, 40, 0.12);
+}
+
+.addIcon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.filterIcon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: block;
+}
+
+.btnGhost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 6px 14px rgba(16, 24, 40, 0.12);
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 220px;
+  background: #ffffff;
+  border: 1px solid #e6e8ef;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(16, 24, 40, 0.18);
+  padding: 8px;
+  z-index: 50;
+}
+
+.dropdownItem {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  border-radius: 12px;
+  padding: 10px 10px;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.dropdownItem:hover {
+  background: #f4f6fb;
+}
+
+.dropdownIcon {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+}
+
+.dropdownIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.pageIndicator {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+/* Caja del globo de texto */
+.iconBtn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px); /* arriba del botón */
+  transform: translateX(-50%) translateY(4px);
+  opacity: 0;
+  pointer-events: none;
+
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+
+  background: rgba(17, 24, 39, 0.95); /* gris oscuro */
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+  z-index: 50;
+}
+
+/* Flechita del globo */
+.iconBtn[data-tooltip]::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  transform: translateX(-50%) rotate(45deg);
+  opacity: 0;
+  pointer-events: none;
+
+  width: 8px;
+  height: 8px;
+  background: rgba(17, 24, 39, 0.95);
+
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+  z-index: 49;
+}
+
+/* Mostrar tooltip en hover y focus (accesible teclado) */
+.iconBtn[data-tooltip]:hover::after,
+.iconBtn[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.iconBtn[data-tooltip]:hover::before,
+.iconBtn[data-tooltip]:focus-visible::before {
+  opacity: 1;
+}
+
+/* Respeta usuarios con reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .iconBtn[data-tooltip]::after,
+  .iconBtn[data-tooltip]::before {
+    transition: none;
+  }
+}
