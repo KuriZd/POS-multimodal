@@ -1,0 +1,203 @@
+/* src/renderer/src/pages/DashboardPage.module.css */
+
+/* ─── Shell ──────────────────────────────────────────────────── */
+.dashboard {
+    width: 100%;
+    min-width: 0;
+    padding: 24px;
+    /* ✅ antes sin padding */
+    box-sizing: border-box;
+}
+
+/* ─── Grid principal ─────────────────────────────────────────── */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+/* ─── Card ───────────────────────────────────────────────────── */
+.card {
+    background: #fafafa;
+    border: 1px solid #dadada;
+    border-radius: 18px;
+    padding: 18px;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
+.cardHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.cardTitle {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    /* ✅ agregado */
+    color: #1f1f1f;
+}
+
+.cardSubtitle {
+    margin: 6px 0 0;
+    font-size: 0.9rem;
+    color: #666666;
+}
+
+/* ─── Sync button ────────────────────────────────────────────── */
+.syncButton {
+    height: 40px;
+    border: none;
+    border-radius: 10px;
+    padding: 0 14px;
+    background: #2d2d2d;
+    color: #ffffff;
+    font-size: 0.88rem;
+    /* ✅ agregado */
+    font-weight: 500;
+    /* ✅ agregado */
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+    /* ✅ agregado */
+}
+
+.syncButton:hover {
+    opacity: 0.85;
+    /* ✅ agregado */
+}
+
+.syncButton:disabled {
+    opacity: 0.5;
+    /* ✅ antes 0.7 */
+    cursor: not-allowed;
+}
+
+/* ─── Cajas de contenido ─────────────────────────────────────── */
+.messageBox,
+.codeBox,
+.emptyState {
+    background: #ffffff;
+    border: 1px solid #e2e2e2;
+    border-radius: 14px;
+    padding: 16px;
+}
+
+.messageText {
+    margin: 0;
+    color: #333333;
+    line-height: 1.5;
+}
+
+.codeValue {
+    display: block;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #232323;
+    word-break: break-word;
+}
+
+/* ─── Product grid ───────────────────────────────────────────── */
+.productGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.infoBox {
+    background: #ffffff;
+    border: 1px solid #e2e2e2;
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.infoLabel {
+    font-size: 0.82rem;
+    color: #727272;
+}
+
+.infoValue {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #222222;
+    word-break: break-word;
+}
+
+/* ─── Empty state ────────────────────────────────────────────── */
+.emptyTitle {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #262626;
+}
+
+.emptyText {
+    margin: 10px 0 0;
+    font-size: 0.9rem;
+    color: #6a6a6a;
+}
+
+/* ─── Quick actions ──────────────────────────────────────────── */
+.quickActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.quickAction {
+    min-height: 52px;
+    border: 1px solid #e2e2e2;
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 12px 14px;
+    text-align: left;
+    font-size: 0.94rem;
+    font-weight: 600;
+    color: #262626;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    /* ✅ agregado */
+}
+
+.quickAction:hover {
+    background: #f4f4f4;
+    /* ✅ antes #fcfcfc — más visible */
+    border-color: #c8c8c8;
+    /* ✅ antes #d6d6d6 */
+}
+
+.quickAction:focus-visible {
+    outline: 2px solid #5b79ff;
+    /* ✅ agregado */
+    outline-offset: 2px;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 1000px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .dashboard {
+        padding: 16px;
+        /* ✅ agregado */
+    }
+
+    .cardHeader {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .productGrid,
+    .quickActions {
+        grid-template-calls: 1fr;
+    }
+}
