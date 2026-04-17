@@ -21,7 +21,7 @@
 */
 .card {
   position: relative;
-  width: min(100%, 680px);
+  width: min(100%, 480px);
   min-height: 560px;
   background: #f7f7f7;
   border: 1px solid #2f2f2f;

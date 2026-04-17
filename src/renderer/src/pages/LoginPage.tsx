@@ -1,7 +1,7 @@
 // src/renderer/src/pages/LoginPage.tsx
 import { useState, type FormEvent, type ReactElement } from 'react'
 import styles from './LoginPage.module.css'
-import logo from '../assets/logo.png'
+import logo from '../assets/Logo.png'
 
 type LoginPageProps = {
     onLoginSuccess: (user: AuthUser) => void
