@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('pos', {
     findByCode: (code: string) => ipcRenderer.invoke('products:findByCode', code)
   },
   sync: {
-    pullProducts: () => ipcRenderer.invoke('sync:pullProducts')
+    pullProducts: () => ipcRenderer.invoke('sync:pullProducts'),
+    pullAll: () => ipcRenderer.invoke('sync:pullAll')
   }
 })
