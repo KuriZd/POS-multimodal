@@ -180,7 +180,7 @@ async function fetchProductsFromLocal(page: number, pageSize: number, search: st
 
 async function fetchProductsFromSupabase(page: number, pageSize: number, search: string): Promise<ProductsListResult> {
   let query = supabase
-    .from('products')
+    .from('Product')
     .select('*', { count: 'exact' })
     .eq('active', true)
     .order('id', { ascending: true })
@@ -210,7 +210,7 @@ async function fetchProductsFromSupabase(page: number, pageSize: number, search:
 
 async function fetchServicesFromSupabase(page: number, pageSize: number, search: string): Promise<ServicesListResult> {
   let query = supabase
-    .from('services')
+    .from('Service')
     .select('*', { count: 'exact' })
     .eq('active', true)
     .order('id', { ascending: true })
@@ -391,6 +391,7 @@ export default function ProductsView(): JSX.Element {
     await fetchServicesList(nextPage, nextPageSize, nextSearch)
   }
 
+  // Search/pageSize: debounced, reset page to 1
   useEffect(() => {
     const t = setTimeout(() => {
       if (page !== 1) {
@@ -401,24 +402,23 @@ export default function ProductsView(): JSX.Element {
     }, 250)
 
     return () => clearTimeout(t)
-  }, [search, pageSize, mode])
+  }, [search, pageSize])
 
+  // Page change: immediate fetch
   useEffect(() => {
     void fetchCurrentList(page, pageSize, search, mode)
-  }, [page, mode])
+  }, [page])
 
   async function handleDeleteProduct(id: number, source: DataSource): Promise<void> {
     try {
       if (source === 'local') {
         const productsApi = getLocalProductsApi()
-        if (!productsApi?.remove) {
-          throw new Error('La API local de productos no está disponible.')
-        }
+        if (!productsApi?.remove) throw new Error('La API local de productos no está disponible.')
         await productsApi.remove(id)
-      } else {
-        const { error } = await supabase.from('products').update({ active: false }).eq('id', id)
-        if (error) throw error
       }
+
+      const { error } = await supabase.from('Product').update({ active: false }).eq('id', id)
+      if (error) throw new Error(error.message)
 
       const fallbackPage = page > 1 && productsData.items.length === 1 ? page - 1 : page
       setPage(fallbackPage)
@@ -433,14 +433,12 @@ export default function ProductsView(): JSX.Element {
     try {
       if (source === 'local') {
         const servicesApi = getLocalServicesApi()
-        if (!servicesApi?.remove) {
-          throw new Error('La API local de servicios no está disponible.')
-        }
+        if (!servicesApi?.remove) throw new Error('La API local de servicios no está disponible.')
         await servicesApi.remove(id)
-      } else {
-        const { error } = await supabase.from('services').update({ active: false }).eq('id', id)
-        if (error) throw error
       }
+
+      const { error } = await supabase.from('Service').update({ active: false }).eq('id', id)
+      if (error) throw new Error(error.message)
 
       const fallbackPage = page > 1 && servicesData.items.length === 1 ? page - 1 : page
       setPage(fallbackPage)
@@ -449,6 +447,13 @@ export default function ProductsView(): JSX.Element {
       console.error('No se pudo eliminar el servicio.', error)
       alert('No se pudo eliminar el servicio.')
     }
+  }
+
+  function handleModeChange(newMode: ViewMode): void {
+    if (newMode === mode) return
+    setMode(newMode)
+    setPage(1)
+    void fetchCurrentList(1, pageSize, search, newMode)
   }
 
   function openCreateProductModal(): void {
@@ -551,24 +556,22 @@ export default function ProductsView(): JSX.Element {
         <div className={styles.topbar}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <button
-              className={styles.btnGhost}
+              className={`${styles.btnGhost} ${mode === 'products' ? styles.tabActive : ''}`}
               type="button"
-              onClick={() => setMode('products')}
+              onClick={() => handleModeChange('products')}
               aria-pressed={mode === 'products'}
               title="Ver productos"
-              style={{ opacity: mode === 'products' ? 1 : 0.65 }}
             >
               <AiOutlineProduct style={{ marginRight: 8 }} />
               Productos
             </button>
 
             <button
-              className={styles.btnGhost}
+              className={`${styles.btnGhost} ${mode === 'services' ? styles.tabActive : ''}`}
               type="button"
-              onClick={() => setMode('services')}
+              onClick={() => handleModeChange('services')}
               aria-pressed={mode === 'services'}
               title="Ver servicios"
-              style={{ opacity: mode === 'services' ? 1 : 0.65 }}
             >
               <FaHandshake style={{ marginRight: 8 }} />
               Servicios
@@ -659,7 +662,7 @@ export default function ProductsView(): JSX.Element {
             </div>
           )}
 
-          {loading ? (
+          {loading && currentData.items.length === 0 ? (
             <div className={styles.row}>
               <div className={styles.muted}>...</div>
               <div className={styles.muted}>Cargando...</div>
@@ -668,7 +671,7 @@ export default function ProductsView(): JSX.Element {
               <div />
               <div />
             </div>
-          ) : currentData.items.length === 0 ? (
+          ) : !loading && currentData.items.length === 0 ? (
             <div className={styles.row}>
               <div className={styles.muted}>-</div>
               <div className={styles.muted}>Sin resultados</div>
@@ -692,8 +695,7 @@ export default function ProductsView(): JSX.Element {
                     type="button"
                     onClick={() => openEditProductModal(p.id)}
                     aria-label="Editar"
-                    title={p.source === 'local' ? 'Editar' : 'Editar disponible solo para registros locales'}
-                    disabled={p.source !== 'local'}
+                    title="Editar"
                   >
                     ✎
                   </button>
@@ -725,8 +727,7 @@ export default function ProductsView(): JSX.Element {
                     type="button"
                     onClick={() => openEditServiceModal(s.id)}
                     aria-label="Editar"
-                    title={s.source === 'local' ? 'Editar' : 'Editar disponible solo para registros locales'}
-                    disabled={s.source !== 'local'}
+                    title="Editar"
                   >
                     ✎
                   </button>
