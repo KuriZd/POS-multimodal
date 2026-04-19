@@ -2,6 +2,7 @@
 import { useCallback, useMemo, useState, type ReactElement } from 'react'
 import Sidebar from './Sidebar'
 import TopNav from './TopNav'
+import { useSync } from '../../hooks/useSync'
 import DashboardPage from '../../pages/DashboardPage'
 import ProductsPage from '../../pages/ProductsPage'
 import InventoryPage from '../../pages/InventoryPage'
@@ -16,7 +17,8 @@ type AppLayoutProps = {
 
 export default function AppLayout({ user, onLogout }: AppLayoutProps): ReactElement {
     const [activeSection, setActiveSection] = useState<AppSection>('dashboard')
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
+    const { status: syncStatus, lastSyncAt, sync } = useSync()
 
     const menuItems = useMemo<SidebarMenuItem[]>(() => [
         { key: 'dashboard', label: 'Inicio' },
@@ -62,6 +64,9 @@ export default function AppLayout({ user, onLogout }: AppLayoutProps): ReactElem
                     user={user}
                     title={sectionTitleMap[activeSection]}
                     showUserSummary={!isSidebarCollapsed}
+                    syncStatus={syncStatus}
+                    lastSyncAt={lastSyncAt}
+                    onSyncNow={sync}
                 />
 
                 <main className={styles.content}>

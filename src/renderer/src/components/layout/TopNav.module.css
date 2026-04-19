@@ -87,3 +87,29 @@
     outline: 2px solid #5b79ff;
     outline-offset: 2px;
 }
+
+.syncButton {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.syncButton:hover:not(:disabled) {
+    background: rgba(91, 121, 255, 0.08);
+}
+
+.syncButton:disabled {
+    cursor: default;
+}
+
+.syncButton:focus-visible {
+    outline: 2px solid #5b79ff;
+    outline-offset: 2px;
+}

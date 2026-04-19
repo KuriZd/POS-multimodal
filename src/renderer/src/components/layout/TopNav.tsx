@@ -1,12 +1,15 @@
 // src/renderer/src/components/layout/TopNav.tsx
 import { type ReactElement } from 'react'
 import styles from './TopNav.module.css'
+import type { SyncStatus } from '../../hooks/useSync'
 
 type TopNavProps = {
     user: AuthUser
     title: string
-    // ✅ description eliminado
     showUserSummary: boolean
+    syncStatus: SyncStatus
+    lastSyncAt: Date | null
+    onSyncNow: () => void
 }
 
 function BellIcon(): ReactElement {
@@ -19,18 +22,45 @@ function BellIcon(): ReactElement {
     )
 }
 
-// function SettingsIcon(): ReactElement {
-//     return (
-//         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-//             stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-//             <circle cx="12" cy="12" r="3" />
-//             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-//         </svg>
-//     )
-// }
+function SyncIcon({ spinning }: { spinning: boolean }): ReactElement {
+    return (
+        <svg
+            width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            style={spinning ? { animation: 'spin 1s linear infinite' } : undefined}
+        >
+            <polyline points="23 4 23 10 17 10" />
+            <polyline points="1 20 1 14 7 14" />
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+        </svg>
+    )
+}
+
+function syncLabel(status: SyncStatus, lastSyncAt: Date | null): string {
+    if (status === 'syncing') return 'Sincronizando...'
+    if (status === 'error') return 'Error al sincronizar — clic para reintentar'
+    if (lastSyncAt) {
+        const mins = Math.floor((Date.now() - lastSyncAt.getTime()) / 60000)
+        if (mins < 1) return 'Sincronizado hace un momento'
+        if (mins < 60) return `Sincronizado hace ${mins} min`
+        const hrs = Math.floor(mins / 60)
+        return `Sincronizado hace ${hrs} h`
+    }
+    return 'Sincronizar ahora'
+}
+
+function syncColor(status: SyncStatus): string {
+    if (status === 'syncing') return '#5b79ff'
+    if (status === 'error') return '#e05353'
+    if (status === 'ok') return '#2db57a'
+    return '#9a9a9a'
+}
 
 export default function TopNav({
     title,
+    syncStatus,
+    lastSyncAt,
+    onSyncNow,
 }: TopNavProps): ReactElement {
     return (
         <header className={styles.topNav}>
@@ -45,8 +75,20 @@ export default function TopNav({
                 <h1 className={styles.title}>{title}</h1>
             </div>
 
-            {/* ─── Derecha: acciones — siempre visibles ────────────── */}
+            {/* ─── Derecha: acciones ───────────────────────────────── */}
             <div className={styles.actions}>
+                <button
+                    type="button"
+                    className={styles.syncButton}
+                    onClick={syncStatus !== 'syncing' ? onSyncNow : undefined}
+                    aria-label={syncLabel(syncStatus, lastSyncAt)}
+                    title={syncLabel(syncStatus, lastSyncAt)}
+                    style={{ color: syncColor(syncStatus) }}
+                    disabled={syncStatus === 'syncing'}
+                >
+                    <SyncIcon spinning={syncStatus === 'syncing'} />
+                </button>
+
                 <button
                     type="button"
                     className={styles.actionButton}
@@ -55,16 +97,9 @@ export default function TopNav({
                 >
                     <BellIcon />
                 </button>
-
-                {/* <button
-                    type="button"
-                    className={styles.actionButton}
-                    aria-label="Configuración"
-                    title="Configuración"
-                >
-                    <SettingsIcon />
-                </button> */}
             </div>
+
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </header>
     )
 }
