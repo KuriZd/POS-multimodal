@@ -183,7 +183,7 @@ function buildServiceRowSnake(payload: Partial<CreateServicePayload>): UnknownRo
   return row
 }
 
-function buildServiceRowCamel(payload: Partial<CreateServicePayload>): UnknownRow {
+function buildServiceRowCamel(payload: Partial<CreateServicePayload>, forInsert = false): UnknownRow {
   const row: UnknownRow = {}
 
   if (typeof payload.code === 'string') row.code = payload.code.trim()
@@ -192,6 +192,7 @@ function buildServiceRowCamel(payload: Partial<CreateServicePayload>): UnknownRo
   if (typeof payload.cost === 'number') row.cost = payload.cost
   if (typeof payload.price === 'number') row.price = payload.price
   if (typeof payload.profitPctBp === 'number') row.profitPctBp = payload.profitPctBp
+  if (forInsert) row.active = true
 
   return row
 }
@@ -235,7 +236,7 @@ function assertSupabaseOk(error: unknown, fallbackMessage: string): void {
 async function getSupabaseServiceById(id: number): Promise<SupabaseServiceRecord | null> {
   const attempts = [
     async () => {
-      const { data, error } = await supabase.from('services').select('*').eq('id', id).maybeSingle()
+      const { data, error } = await supabase.from('Service').select('*').eq('id', id).maybeSingle()
       assertSupabaseOk(error, 'No se pudo consultar el servicio en Supabase.')
       return mapSupabaseService(data)
     }
@@ -251,7 +252,7 @@ async function getSupabaseServiceByCode(code: string): Promise<SupabaseServiceRe
   const attempts = [
     async () => {
       const { data, error } = await supabase
-        .from('services')
+        .from('Service')
         .select('*')
         .eq('code', normalized)
         .maybeSingle()
@@ -267,15 +268,15 @@ async function getSupabaseServiceSupplies(serviceId: number): Promise<ServiceSup
   const attempts = [
     async () => {
       const { data, error } = await supabase
-        .from('service_supplies')
+        .from('ServiceSupply')
         .select('*')
-        .eq('service_id', serviceId)
+        .eq('serviceId', serviceId)
       assertSupabaseOk(error, 'No se pudieron consultar los insumos del servicio en Supabase.')
       return mapSupplies(((data ?? []) as unknown[]))
     },
     async () => {
       const { data, error } = await supabase
-        .from('serviceSupplies')
+        .from('ServiceSupply')
         .select('*')
         .eq('serviceId', serviceId)
       assertSupabaseOk(error, 'No se pudieron consultar los insumos del servicio en Supabase.')
@@ -287,25 +288,13 @@ async function getSupabaseServiceSupplies(serviceId: number): Promise<ServiceSup
 }
 
 async function insertSupabaseService(payload: CreateServicePayload): Promise<number> {
-  const snakeRow = buildServiceRowSnake(payload)
-  const camelRow = buildServiceRowCamel(payload)
+  const row = buildServiceRowCamel(payload, true)
 
-  const inserted = await tryAlternatives<SupabaseServiceRecord>([
-    async () => {
-      const { data, error } = await supabase.from('services').insert(snakeRow).select('*').single()
-      assertSupabaseOk(error, 'No se pudo crear el servicio en Supabase.')
-      const mapped = mapSupabaseService(data)
-      if (!mapped) throw new Error('Supabase devolvió un servicio inválido.')
-      return mapped
-    },
-    async () => {
-      const { data, error } = await supabase.from('services').insert(camelRow).select('*').single()
-      assertSupabaseOk(error, 'No se pudo crear el servicio en Supabase.')
-      const mapped = mapSupabaseService(data)
-      if (!mapped) throw new Error('Supabase devolvió un servicio inválido.')
-      return mapped
-    }
-  ])
+  const { data, error } = await supabase.from('Service').insert(row).select('*').single()
+  assertSupabaseOk(error, 'No se pudo crear el servicio en Supabase.')
+
+  const inserted = mapSupabaseService(data)
+  if (!inserted) throw new Error('Supabase devolvió un servicio inválido.')
 
   await replaceSupabaseServiceSupplies(inserted.id, payload.supplies)
   return inserted.id
@@ -317,26 +306,15 @@ async function replaceSupabaseServiceSupplies(
 ): Promise<void> {
   const safeSupplies = supplies ?? []
 
-  await tryAlternatives<void>([
-    async () => {
-      const { error } = await supabase.from('service_supplies').delete().eq('service_id', serviceId)
-      assertSupabaseOk(error, 'No se pudieron actualizar los insumos del servicio en Supabase.')
-      if (safeSupplies.length === 0) return
-      const { error: insertError } = await supabase
-        .from('service_supplies')
-        .insert(buildSuppliesRowsSnake(serviceId, safeSupplies))
-      assertSupabaseOk(insertError, 'No se pudieron guardar los insumos del servicio en Supabase.')
-    },
-    async () => {
-      const { error } = await supabase.from('serviceSupplies').delete().eq('serviceId', serviceId)
-      assertSupabaseOk(error, 'No se pudieron actualizar los insumos del servicio en Supabase.')
-      if (safeSupplies.length === 0) return
-      const { error: insertError } = await supabase
-        .from('serviceSupplies')
-        .insert(buildSuppliesRowsCamel(serviceId, safeSupplies))
-      assertSupabaseOk(insertError, 'No se pudieron guardar los insumos del servicio en Supabase.')
-    }
-  ])
+  const { error: deleteError } = await supabase.from('ServiceSupply').delete().eq('serviceId', serviceId)
+  assertSupabaseOk(deleteError, 'No se pudieron actualizar los insumos del servicio en Supabase.')
+
+  if (safeSupplies.length === 0) return
+
+  const { error: insertError } = await supabase
+    .from('ServiceSupply')
+    .insert(buildSuppliesRowsCamel(serviceId, safeSupplies))
+  assertSupabaseOk(insertError, 'No se pudieron guardar los insumos del servicio en Supabase.')
 }
 
 async function updateSupabaseServiceByLocator(
@@ -344,7 +322,6 @@ async function updateSupabaseServiceByLocator(
   payload: Partial<CreateServicePayload>,
   codeFallback?: string | null
 ): Promise<void> {
-  const snakeRow = buildServiceRowSnake(payload)
   const camelRow = buildServiceRowCamel(payload)
 
   const targetById = await getSupabaseServiceById(id)
@@ -359,7 +336,7 @@ async function updateSupabaseServiceByLocator(
       typeof payload.price === 'number' &&
       typeof payload.profitPctBp === 'number'
     ) {
-      const fullPayload: CreateServicePayload = {
+      await insertSupabaseService({
         code: payload.code,
         name: payload.name,
         durationMin: payload.durationMin,
@@ -367,24 +344,15 @@ async function updateSupabaseServiceByLocator(
         price: payload.price,
         profitPctBp: payload.profitPctBp,
         supplies: payload.supplies ?? []
-      }
-      await insertSupabaseService(fullPayload)
+      })
       return
     }
 
     throw new Error('No se encontró el servicio en Supabase para actualizarlo.')
   }
 
-  await tryAlternatives<void>([
-    async () => {
-      const { error } = await supabase.from('services').update(snakeRow).eq('id', target.id)
-      assertSupabaseOk(error, 'No se pudo actualizar el servicio en Supabase.')
-    },
-    async () => {
-      const { error } = await supabase.from('services').update(camelRow).eq('id', target.id)
-      assertSupabaseOk(error, 'No se pudo actualizar el servicio en Supabase.')
-    }
-  ])
+  const { error } = await supabase.from('Service').update(camelRow).eq('id', target.id)
+  assertSupabaseOk(error, 'No se pudo actualizar el servicio en Supabase.')
 
   if (payload.supplies) {
     await replaceSupabaseServiceSupplies(target.id, payload.supplies)
@@ -402,7 +370,7 @@ async function listSupabaseServices(args: ServicesListArgs): Promise<ServicesLis
   const from = (page - 1) * pageSize
   const to = from + pageSize - 1
 
-  let query = supabase.from('services').select('*', { count: 'exact' })
+  let query = supabase.from('Service').select('*', { count: 'exact' })
 
   if (search) {
     const safeSearch = search.replace(/,/g, ' ')

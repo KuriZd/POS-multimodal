@@ -80,12 +80,12 @@ function toSupabaseCreatePayload(payload: CreateProductPayload): Record<string, 
     sku: payload.sku,
     name: payload.name,
     stock: payload.stock,
-    stock_min: payload.stockMin,
-    stock_max: payload.stockMax,
+    stockMin: payload.stockMin,
+    stockMax: payload.stockMax,
     cost: payload.cost,
     price: payload.price,
-    profit_pct_bp: payload.profitPctBp,
-    image_url: payload.imageDataUrl ?? null,
+    profitPctBp: payload.profitPctBp,
+    imagePath: payload.imageDataUrl ?? null,
     active: true
   }
 }
@@ -96,19 +96,19 @@ function toSupabaseUpdatePayload(payload: Partial<CreateProductPayload>): Record
   if (payload.sku !== undefined) out.sku = payload.sku
   if (payload.name !== undefined) out.name = payload.name
   if (payload.stock !== undefined) out.stock = payload.stock
-  if (payload.stockMin !== undefined) out.stock_min = payload.stockMin
-  if (payload.stockMax !== undefined) out.stock_max = payload.stockMax
+  if (payload.stockMin !== undefined) out.stockMin = payload.stockMin
+  if (payload.stockMax !== undefined) out.stockMax = payload.stockMax
   if (payload.cost !== undefined) out.cost = payload.cost
   if (payload.price !== undefined) out.price = payload.price
-  if (payload.profitPctBp !== undefined) out.profit_pct_bp = payload.profitPctBp
-  if (payload.imageDataUrl !== undefined) out.image_url = payload.imageDataUrl
+  if (payload.profitPctBp !== undefined) out.profitPctBp = payload.profitPctBp
+  if (payload.imageDataUrl !== undefined) out.imagePath = payload.imageDataUrl
 
   return out
 }
 
 async function createInSupabase(payload: CreateProductPayload): Promise<{ id: number } | null> {
   const { data, error } = await supabase
-    .from('products')
+    .from('Product')
     .insert(toSupabaseCreatePayload(payload))
     .select('id')
     .single()
@@ -125,7 +125,7 @@ async function updateInSupabase(id: number, payload: Partial<CreateProductPayloa
   const updatePayload = toSupabaseUpdatePayload(payload)
   if (Object.keys(updatePayload).length === 0) return
 
-  const { error } = await supabase.from('products').update(updatePayload).eq('id', id)
+  const { error } = await supabase.from('Product').update(updatePayload).eq('id', id)
 
   if (error) {
     console.warn('[productRepository.update] No se pudo sincronizar en Supabase:', error.message)
@@ -133,7 +133,7 @@ async function updateInSupabase(id: number, payload: Partial<CreateProductPayloa
 }
 
 async function getFromSupabase(id: number): Promise<ProductDetails> {
-  const { data, error } = await supabase.from('products').select('*').eq('id', id).single()
+  const { data, error } = await supabase.from('Product').select('*').eq('id', id).single()
 
   if (error || !data) {
     throw new Error(error?.message ?? 'No se pudo obtener el producto desde Supabase')
@@ -143,7 +143,7 @@ async function getFromSupabase(id: number): Promise<ProductDetails> {
 }
 
 async function getBySkuFromSupabase(sku: string): Promise<ProductDetails | null> {
-  const { data, error } = await supabase.from('products').select('*').eq('sku', sku).maybeSingle()
+  const { data, error } = await supabase.from('Product').select('*').eq('sku', sku).maybeSingle()
 
   if (error) {
     console.warn('[productRepository.getBySku] Falló búsqueda en Supabase:', error.message)
@@ -161,7 +161,7 @@ async function listFromSupabase(args: ProductsListArgs): Promise<ProductsListRes
   const from = (page - 1) * pageSize
   const to = from + pageSize - 1
 
-  let query = supabase.from('products').select('*', { count: 'exact' }).eq('active', true)
+  let query = supabase.from('Product').select('*', { count: 'exact' }).eq('active', true)
 
   if (search) {
     query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%`)

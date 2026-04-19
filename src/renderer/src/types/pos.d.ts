@@ -116,6 +116,10 @@ export type ServicesListResult = {
 declare global {
   interface Window {
     pos: {
+      sync: {
+        pullProducts: () => Promise<{ ok: boolean; count: number }>
+        pullAll: () => Promise<{ ok: boolean; syncedAt: string; products: number }>
+      }
       products: {
         create: (payload: CreateProductPayload) => Promise<{ id: number }>
         list: (args: ProductsListArgs) => Promise<ProductsListResult>
