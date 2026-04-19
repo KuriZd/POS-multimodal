@@ -247,7 +247,7 @@ async function fetchProductsFromSupabase(
   pageSize: number
 ): Promise<ProductsListResult> {
   let query = supabase
-    .from('products')
+    .from('Product')
     .select('*', { count: 'exact' })
     .eq('active', true)
     .order('id', { ascending: true })
@@ -319,7 +319,7 @@ async function fetchSupabaseServiceSupplies(serviceId: number): Promise<ServiceS
 
 async function fetchServiceFromSupabase(serviceId: number): Promise<ServiceLookup> {
   const { data, error } = await supabase
-    .from('services')
+    .from('Service')
     .select('*')
     .eq('id', serviceId)
     .maybeSingle()
@@ -337,7 +337,7 @@ async function getServiceByCodeFromSupabase(code: string): Promise<ServiceLookup
   if (!normalized) return null
 
   const { data, error } = await supabase
-    .from('services')
+    .from('Service')
     .select('*')
     .eq('code', normalized)
     .maybeSingle()
@@ -345,125 +345,6 @@ async function getServiceByCodeFromSupabase(code: string): Promise<ServiceLookup
   if (error || !data) return null
 
   return normalizeServiceFromSupabase(data as Record<string, unknown>)
-}
-
-type SupabaseRowAttempt = {
-  table: string
-  row: Record<string, unknown>
-}
-
-function getSupabaseServiceRowAttempts(payload: CreateServicePayload): SupabaseRowAttempt[] {
-  return [
-    {
-      table: 'services',
-      row: {
-        code: payload.code,
-        name: payload.name,
-        duration_min: payload.durationMin,
-        cost: payload.cost,
-        price: payload.price,
-        profit_pct_bp: payload.profitPctBp,
-        active: true
-      }
-    },
-    {
-      table: 'services',
-      row: {
-        code: payload.code,
-        name: payload.name,
-        durationMin: payload.durationMin,
-        cost: payload.cost,
-        price: payload.price,
-        profitPctBp: payload.profitPctBp,
-        active: true
-      }
-    }
-  ]
-}
-
-async function createServiceInSupabase(payload: CreateServicePayload): Promise<number | null> {
-  let lastError: unknown = null
-
-  for (const attempt of getSupabaseServiceRowAttempts(payload)) {
-    const { data, error } = await supabase
-      .from(attempt.table)
-      .insert(attempt.row)
-      .select('id')
-      .maybeSingle()
-
-    if (!error) {
-      const id = Number((data as Record<string, unknown> | null)?.id ?? 0)
-      return Number.isFinite(id) && id > 0 ? id : null
-    }
-
-    lastError = error
-  }
-
-  throw lastError instanceof Error
-    ? lastError
-    : new Error('No se pudo crear el servicio en Supabase')
-}
-
-async function updateServiceInSupabase(
-  serviceId: number,
-  payload: CreateServicePayload
-): Promise<void> {
-  let lastError: unknown = null
-
-  for (const attempt of getSupabaseServiceRowAttempts(payload)) {
-    const { error } = await supabase.from(attempt.table).update(attempt.row).eq('id', serviceId)
-
-    if (!error) return
-    lastError = error
-  }
-
-  throw lastError instanceof Error
-    ? lastError
-    : new Error('No se pudo actualizar el servicio en Supabase')
-}
-
-async function syncSupabaseServiceSupplies(
-  serviceId: number,
-  supplies: ServiceSupplyInput[]
-): Promise<void> {
-  const attempts = [
-    { table: 'service_supplies', filterKey: 'service_id', productKey: 'product_id' },
-    { table: 'service_supplies', filterKey: 'serviceId', productKey: 'productId' },
-    { table: 'serviceSupplies', filterKey: 'service_id', productKey: 'product_id' },
-    { table: 'serviceSupplies', filterKey: 'serviceId', productKey: 'productId' }
-  ] as const
-
-  let lastError: unknown = null
-
-  for (const attempt of attempts) {
-    const deleteResult = await supabase
-      .from(attempt.table)
-      .delete()
-      .eq(attempt.filterKey, serviceId)
-    if (deleteResult.error) {
-      lastError = deleteResult.error
-      continue
-    }
-
-    if (!supplies.length) return
-
-    const rows = supplies.map((supply) => ({
-      [attempt.filterKey]: serviceId,
-      [attempt.productKey]: supply.productId,
-      qty: supply.qty
-    }))
-
-    const insertResult = await supabase.from(attempt.table).insert(rows)
-    if (!insertResult.error) return
-
-    lastError = insertResult.error
-  }
-
-  if (lastError) {
-    throw lastError instanceof Error
-      ? lastError
-      : new Error('No se pudieron sincronizar los insumos en Supabase')
-  }
 }
 
 type ModalShellProps = {
@@ -678,7 +559,7 @@ function InsumosModal({
       role="dialog"
       aria-modal="true"
     >
-      <div className={styles.modal}>
+      <div className={styles.modalSmall}>
         <ModalHeader title="Insumos" onClose={onClose} />
 
         <div className={styles.body}>
@@ -696,8 +577,8 @@ function InsumosModal({
               placeholder="Buscar producto..."
             />
 
-            <div style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
-              <span style={{ opacity: 0.8 }}>Coste operativo:</span>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', color: '#111827' }}>
+              <span style={{ color: '#6b7280' }}>Coste operativo:</span>
               <strong>${(computedCostCents / 100).toFixed(2)}</strong>
             </div>
           </div>
@@ -718,10 +599,11 @@ function InsumosModal({
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 140px 220px',
+                  gridTemplateColumns: '1fr 70px 110px',
                   padding: '10px 14px',
                   background: '#dbe9ff',
-                  fontWeight: 700
+                  fontWeight: 700,
+                  color: '#1e2a45'
                 }}
               >
                 <div>Nombre</div>
@@ -739,10 +621,11 @@ function InsumosModal({
                       key={p.id}
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: '1fr 140px 220px',
+                        gridTemplateColumns: '1fr 70px 110px',
                         padding: '10px 14px',
                         borderTop: '1px solid #e5e7eb',
-                        alignItems: 'center'
+                        alignItems: 'center',
+                        color: '#111827'
                       }}
                     >
                       <div style={{ fontSize: 18 }}>{p.name}</div>
@@ -797,7 +680,7 @@ function InsumosModal({
                 {'<'}
               </button>
 
-              <span style={{ opacity: 0.8 }}>
+              <span style={{ color: '#6b7280' }}>
                 {page} / {pages}
               </span>
 
@@ -1290,63 +1173,10 @@ export default function AddServiceModal({
         supplies
       }
 
-      let localSucceeded = false
-      let supabaseSucceeded = false
-      let localErrorMessage: string | null = null
-      let supabaseErrorMessage: string | null = null
-
       if (!effectiveServiceId) {
-        try {
-          await serviceRepository.create(basePayload)
-          localSucceeded = true
-        } catch (err) {
-          localErrorMessage =
-            err instanceof Error ? err.message : 'No se pudo guardar en la BD local'
-        }
-
-        try {
-          const supabaseId = await createServiceInSupabase(basePayload)
-          supabaseSucceeded = true
-
-          if (supabaseId && supplies.length) {
-            await syncSupabaseServiceSupplies(supabaseId, supplies).catch(() => undefined)
-          }
-        } catch (err) {
-          supabaseErrorMessage =
-            err instanceof Error ? err.message : 'No se pudo guardar en Supabase'
-        }
+        await serviceRepository.create(basePayload)
       } else {
-        try {
-          await serviceRepository.update(effectiveServiceId, basePayload)
-          localSucceeded = true
-        } catch (err) {
-          localErrorMessage =
-            err instanceof Error ? err.message : 'No se pudo actualizar en la BD local'
-        }
-
-        try {
-          await updateServiceInSupabase(effectiveServiceId, basePayload)
-          supabaseSucceeded = true
-          await syncSupabaseServiceSupplies(effectiveServiceId, supplies).catch(() => undefined)
-        } catch (err) {
-          supabaseErrorMessage =
-            err instanceof Error ? err.message : 'No se pudo actualizar en Supabase'
-        }
-      }
-
-      if (!localSucceeded && !supabaseSucceeded) {
-        throw new Error(
-          [localErrorMessage, supabaseErrorMessage].filter(Boolean).join(' | ') ||
-            'No se pudo guardar el servicio'
-        )
-      }
-
-      if (localSucceeded !== supabaseSucceeded) {
-        setSaveInfo(
-          localSucceeded
-            ? 'Se guardó en la BD local, pero no se pudo sincronizar completamente con Supabase.'
-            : 'Se guardó en Supabase, pero no se pudo sincronizar completamente con la BD local.'
-        )
+        await serviceRepository.update(effectiveServiceId, basePayload)
       }
 
       closeAll()

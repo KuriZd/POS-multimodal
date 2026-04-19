@@ -341,8 +341,8 @@ function mapSupabaseRowToDetails(row: SupabaseProductRow): ProductDetails {
     stock: Number(row.stock ?? 0),
     stockMin: Number(row.stock_min ?? row.stockMin ?? 0),
     stockMax: Number(row.stock_max ?? row.stockMax ?? 0),
-    imageUrl: row.image_url ?? row.imageUrl ?? null,
-    imagePath: row.image_path ?? row.imagePath ?? null
+    imageUrl: row.imagePath ?? row.image_path ?? null,
+    imagePath: row.imagePath ?? row.image_path ?? null
   }
 }
 
@@ -381,14 +381,14 @@ function toSupabasePayload(
     cost: toCents(buy),
     price: toCents(sell),
     profitPctBp: pctToBp(pct),
-    imageUrl: baseImageValue,
+    imagePath: baseImageValue,
     active: true
   }
 }
 
 async function fetchSupabaseProductById(id: number): Promise<ProductDetails | null> {
   const result = await supabase
-    .from('products')
+    .from('Product')
     .select('*')
     .eq('id', id)
     .eq('active', true)
@@ -407,7 +407,7 @@ async function fetchSupabaseProductBySku(sku: string): Promise<ProductDetails | 
   if (!normalized) return null
 
   const result = await supabase
-    .from('products')
+    .from('Product')
     .select('*')
     .eq('sku', normalized)
     .eq('active', true)
@@ -423,16 +423,12 @@ async function fetchSupabaseProductBySku(sku: string): Promise<ProductDetails | 
 
 async function createSupabaseProduct(form: FormState, imageFile: File | null): Promise<void> {
   const imageDataUrl = imageFile ? await fileToDataUrl(imageFile) : null
+  const intent: ImageIntent = imageDataUrl ? 'replace' : 'remove'
 
-  const snakePayload = toSupabasePayload(form, imageDataUrl, imageDataUrl ? 'replace' : 'keep', 'snake')
-  const snakeResult = await supabase.from('products').insert(snakePayload)
-  if (!snakeResult.error) return
+  const camelPayload = toSupabasePayload(form, imageDataUrl, intent, 'camel')
+  const { error } = await supabase.from('Product').insert(camelPayload)
 
-  const camelPayload = toSupabasePayload(form, imageDataUrl, imageDataUrl ? 'replace' : 'keep', 'camel')
-  const camelResult = await supabase.from('products').insert(camelPayload)
-  if (!camelResult.error) return
-
-  throw new Error(camelResult.error.message || snakeResult.error.message)
+  if (error) throw new Error(error.message)
 }
 
 async function updateSupabaseProduct(
@@ -444,7 +440,7 @@ async function updateSupabaseProduct(
   const imageDataUrl = imageIntent === 'replace' && imageFile ? await fileToDataUrl(imageFile) : null
 
   const byId = await supabase
-    .from('products')
+    .from('Product')
     .select('id, sku')
     .eq('id', productId)
     .maybeSingle()
@@ -454,7 +450,7 @@ async function updateSupabaseProduct(
 
   if (!targetId) {
     const bySku = await supabase
-      .from('products')
+      .from('Product')
       .select('id, sku')
       .eq('sku', form.code.trim())
       .maybeSingle()
@@ -469,11 +465,11 @@ async function updateSupabaseProduct(
   }
 
   const snakePayload = toSupabasePayload(form, imageDataUrl, imageIntent, 'snake')
-  const snakeResult = await supabase.from('products').update(snakePayload).eq('id', targetId)
+  const snakeResult = await supabase.from('Product').update(snakePayload).eq('id', targetId)
   if (!snakeResult.error) return
 
   const camelPayload = toSupabasePayload(form, imageDataUrl, imageIntent, 'camel')
-  const camelResult = await supabase.from('products').update(camelPayload).eq('id', targetId)
+  const camelResult = await supabase.from('Product').update(camelPayload).eq('id', targetId)
   if (!camelResult.error) return
 
   throw new Error(camelResult.error.message || snakeResult.error.message)

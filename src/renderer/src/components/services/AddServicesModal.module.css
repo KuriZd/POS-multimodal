@@ -7,54 +7,73 @@
     align-items: center;
     justify-content: center;
 
-    padding: clamp(10px, 2vw, 18px);
+    padding: 16px;
     background: rgba(0, 0, 0, 0.2);
 }
 
+/* Modal principal: Agregar / Editar Servicio */
 .modal {
-    width: min(1280px, calc(100vw - (clamp(10px, 2vw, 18px) * 2)));
-    max-height: calc(100vh - (clamp(10px, 2vw, 18px) * 2));
+    width: min(820px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
 
     display: flex;
     flex-direction: column;
 
     background: #ffffff;
-    border-radius: 18px;
+    border-radius: 14px;
     overflow: hidden;
+    color: #111827;
 
-    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+}
+
+/* Modal secundario: Insumos */
+.modalSmall {
+    width: min(480px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+
+    display: flex;
+    flex-direction: column;
+
+    background: #ffffff;
+    border-radius: 14px;
+    overflow: hidden;
+    color: #111827;
+
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
 }
 
 .header {
-    height: 56px;
+    height: 48px;
     background: #8db2ff;
 
     display: flex;
     align-items: center;
     justify-content: space-between;
 
-    padding: 0 16px;
+    padding: 0 14px;
+    flex-shrink: 0;
 }
 
 .title {
     margin: 0;
-    font-size: clamp(16px, 2vw, 20px);
-    font-weight: 500;
+    font-size: 16px;
+    font-weight: 600;
     color: #0f172a;
 }
 
 .closeBtn {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     border: none;
     background: transparent;
-    border-radius: 10px;
+    border-radius: 8px;
 
     cursor: pointer;
     display: grid;
     place-items: center;
 
-    font-size: 22px;
+    font-size: 18px;
     color: #0f172a;
 }
 
@@ -69,9 +88,8 @@
     display: flex;
     flex-direction: column;
 
-    padding: clamp(18px, 4.2vw, 42px) clamp(16px, 5vw, 48px) 18px;
+    padding: 22px 24px 16px;
 
-    /* ✅ Evita scroll horizontal y permite scroll vertical si hace falta */
     overflow-y: auto;
     overflow-x: hidden;
 }
@@ -85,10 +103,9 @@
 ------------------------------ */
 .form {
     display: grid;
-    gap: clamp(18px, 4vw, 58px);
+    gap: 20px;
 }
 
-/* ✅ Clave para que el grid NO fuerce overflow */
 .field,
 .stackCol {
     min-width: 0;
@@ -97,129 +114,84 @@
 .field {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
 }
 
 .label {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
-    color: #0f172a;
+    color: #374151;
 }
 
-/* Inputs generales */
+/* Inputs */
 .input {
-    height: 44px;
+    height: 38px;
     border-radius: 8px;
     border: 1px solid #e5e7eb;
     background: #ffffff;
+    color: #111827;
 
-    padding: 0 14px;
+    padding: 0 12px;
     outline: none;
 
-    font-size: 16px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+    font-size: 14px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 
     width: 100%;
     min-width: 0;
 }
 
 .input:focus {
-    border-color: #b7c9ff;
+    border-color: #93b4ff;
+    box-shadow: 0 0 0 3px rgba(141, 178, 255, 0.2);
 }
 
 /* -----------------------------
    Fila código + nombre
-   (menos espacio entre columnas)
 ------------------------------ */
 .row2 {
     display: grid;
-
-    /* Col 1: código+botones | Col 2: nombre */
-    grid-template-columns: minmax(520px, 1fr) minmax(360px, 620px);
-
-    /* ✅ reduce la distancia */
-    gap: clamp(14px, 2vw, 26px);
-
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
     align-items: start;
 }
 
 .codeWrap {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     flex-wrap: wrap;
 }
 
-/* Input del código: más controlado */
 .codeWrap .input {
     width: auto;
     flex: 1;
-    min-width: 180px;
-    max-width: 280px;
-
+    min-width: 120px;
+    max-width: 200px;
     text-align: center;
-    font-size: 18px;
-    padding: 0 12px;
+    font-size: 14px;
+    padding: 0 10px;
 }
 
 .codeActions {
     display: flex;
-    gap: 10px;
+    gap: 6px;
     flex-wrap: wrap;
-}
-
-/* ✅ Reduce el “estiramiento” del input de nombre */
-.row2>.field:last-child .input {
-    max-width: 640px;
-}
-
-/* Botones cuadrados (reutilizados en InsumosModal también) */
-.iconBtn {
-    width: 38px;
-    height: 38px;
-
-    border-radius: 8px;
-    border: 1px solid #dbe4ff;
-    background: #e8f0ff;
-
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-    cursor: pointer;
-
-    display: grid;
-    place-items: center;
-
-    font-size: 18px;
-    color: #0f172a;
-}
-
-.iconBtn:hover {
-    filter: brightness(0.98);
-}
-
-.iconBtn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 
 /* -----------------------------
    Fila: Coste / Precio / % / Insumos
-   (Coste = mismo ancho que Precio y %)
 ------------------------------ */
 .row4 {
     display: grid;
     align-items: end;
-
-    /* ✅ gaps más compactos */
-    gap: clamp(14px, 2vw, 28px);
-
-    /* ✅ 3 columnas iguales + botón */
-    grid-template-columns: repeat(3, minmax(220px, 340px)) max-content;
+    gap: 16px;
+    grid-template-columns: repeat(3, 1fr) auto;
 }
 
-/* Si llegas a usar stackCol (coste+duración en una columna), queda listo */
 .stackCol {
     display: grid;
-    gap: 22px;
+    gap: 16px;
 }
 
 /* Insumos al extremo derecho */
@@ -227,75 +199,101 @@
     display: flex;
     justify-content: flex-end;
     align-items: flex-end;
-    padding-bottom: 4px;
+    padding-bottom: 1px;
 }
 
 .insumosBtn {
-    width: auto;
-    max-width: 100%;
-
-    height: 46px;
-    border: none;
-    border-radius: 12px;
+    height: 38px;
+    border: 1px solid #c7d9ff;
+    border-radius: 8px;
     background: #dbe8ff;
 
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     cursor: pointer;
 
     display: inline-flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
 
-    padding: 0 16px;
+    padding: 0 14px;
 
-    font-size: clamp(18px, 2.8vw, 26px);
+    font-size: 14px;
     font-weight: 500;
-    color: #0f172a;
+    color: #1e3a8a;
 
     white-space: nowrap;
 }
 
 .insumosBtn:hover {
-    filter: brightness(0.98);
+    background: #c7d9ff;
 }
 
 .insumosBtn svg {
-    font-size: clamp(18px, 2.4vw, 24px);
+    font-size: 15px;
+}
+
+/* Botones cuadrados */
+.iconBtn {
+    width: 32px;
+    height: 32px;
+
+    border-radius: 7px;
+    border: 1px solid #dbe4ff;
+    background: #e8f0ff;
+
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+
+    display: grid;
+    place-items: center;
+
+    font-size: 15px;
+    color: #0f172a;
+}
+
+.iconBtn:hover {
+    background: #d4e3ff;
+}
+
+.iconBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 /* -----------------------------
    Footer + Guardar
 ------------------------------ */
 .footer {
-    margin-top: 50px;
+    margin-top: 20px;
     display: flex;
     justify-content: flex-end;
-    padding-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid #f0f2f7;
 }
 
 .saveBtn {
-    width: min(240px, 100%);
-    height: 52px;
+    height: 36px;
+    padding: 0 20px;
 
     border: none;
-    border-radius: 14px;
+    border-radius: 8px;
     background: #8db2ff;
 
-    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.22);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
     cursor: pointer;
 
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 8px;
 
-    font-size: clamp(18px, 2.8vw, 26px);
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 600;
     color: #0f172a;
 }
 
 .saveBtn:hover {
-    filter: brightness(0.98);
+    background: #7aa3ff;
 }
 
 .saveBtn:disabled {
@@ -306,12 +304,11 @@
 /* -----------------------------
    Breakpoints
 ------------------------------ */
-@media (max-width: 980px) {
+@media (max-width: 700px) {
     .row2 {
         grid-template-columns: 1fr;
     }
 
-    /* 2 columnas en medianas */
     .row4 {
         grid-template-columns: 1fr 1fr;
     }
@@ -321,9 +318,7 @@
     }
 }
 
-@media (max-width: 560px) {
-
-    /* 1 columna en chicas */
+@media (max-width: 460px) {
     .row4 {
         grid-template-columns: 1fr;
     }
