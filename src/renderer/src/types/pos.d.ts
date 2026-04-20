@@ -2,6 +2,7 @@
 export {}
 
 export type DataSource = 'local' | 'supabase'
+export type AppRole = 'ADMIN' | 'CASHIER' | 'SUPERVISOR'
 
 export type CreateProductPayload = {
   sku: string
@@ -115,6 +116,32 @@ export type ServicesListResult = {
   total: number
   page: number
   pageSize: number
+}
+
+export type UserListItem = {
+  id: number
+  username: string
+  name: string
+  role: AppRole
+  active: boolean
+  createdAt: string | null
+  updatedAt: string | null
+}
+
+export type CreateUserPayload = {
+  username: string
+  name: string
+  role: AppRole
+  password: string
+  active: boolean
+}
+
+export type UpdateUserPayload = {
+  username?: string
+  name?: string
+  role?: AppRole
+  password?: string
+  active?: boolean
 }
 
 // Window.pos is declared in src/renderer/src/env.d.ts (single source of truth)

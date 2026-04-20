@@ -6,6 +6,7 @@ import { registerServicesIpc } from './ipc/services.ipc'
 import { registerSalesIpc } from './ipc/sales.ipc'
 import { registerSyncIpc } from './ipc/sync.ipc'
 import { registerAuthIpc } from './ipc/auth.ipc'
+import { registerUsersIpc } from './ipc/users.ipc'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -32,6 +33,7 @@ function createWindow(): void {
 app.whenReady().then(() => {
   getLocalDb()
   registerAuthIpc()
+  registerUsersIpc()
   registerProductsIpc()
   registerServicesIpc()
   registerSalesIpc()

@@ -13,18 +13,17 @@ contextBridge.exposeInMainWorld('pos', {
     findByCode: (code: string) => ipcRenderer.invoke('products:findByCode', code),
     get: (id: number) => ipcRenderer.invoke('products:get', id),
     getBySku: (sku: string) => ipcRenderer.invoke('products:getBySku', sku),
-    list: (args: unknown) => ipcRenderer.invoke('products:list', args),
-    create: (payload: unknown) => ipcRenderer.invoke('products:create', payload),
-    update: (id: number, payload: unknown) => ipcRenderer.invoke('products:update', id, payload),
-    remove: (id: number) => ipcRenderer.invoke('products:remove', id)
+    list: (args: unknown) => ipcRenderer.invoke('products:list', args)
   },
   services: {
     get: (id: number) => ipcRenderer.invoke('services:get', id),
     getByCode: (code: string) => ipcRenderer.invoke('services:getByCode', code),
-    list: (args: unknown) => ipcRenderer.invoke('services:list', args),
-    create: (payload: unknown) => ipcRenderer.invoke('services:create', payload),
-    update: (id: number, payload: unknown) => ipcRenderer.invoke('services:update', id, payload),
-    remove: (id: number) => ipcRenderer.invoke('services:remove', id)
+    list: (args: unknown) => ipcRenderer.invoke('services:list', args)
+  },
+  users: {
+    list: () => ipcRenderer.invoke('users:list'),
+    create: (payload: unknown) => ipcRenderer.invoke('users:create', payload),
+    update: (id: number, payload: unknown) => ipcRenderer.invoke('users:update', id, payload)
   },
   sales: {
     create: (payload: unknown) => ipcRenderer.invoke('sales:create', payload)

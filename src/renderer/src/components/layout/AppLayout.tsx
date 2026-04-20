@@ -7,6 +7,7 @@ import DashboardPage from '../../pages/DashboardPage'
 import ProductsPage from '../../pages/ProductsPage'
 import InventoryPage from '../../pages/InventoryPage'
 import SalesPage from '../../pages/SalesPage'
+import UsersPage from '../../pages/UsersPage'
 import styles from './AppLayout.module.css'
 import type { AppSection, SidebarMenuItem } from './layout.types' // ✅ AuthUser importado
 
@@ -16,8 +17,8 @@ type AppLayoutProps = {
 }
 
 const ROLE_ALLOWED_SECTIONS: Record<AppRole, AppSection[]> = {
-    ADMIN: ['dashboard', 'products', 'inventory', 'sales'],
-    SUPERVISOR: ['dashboard', 'products', 'inventory', 'sales'],
+    ADMIN: ['dashboard', 'products', 'inventory', 'sales', 'users'],
+    SUPERVISOR: ['dashboard', 'products', 'inventory', 'sales', 'users'],
     CASHIER: ['sales'],
 }
 
@@ -26,6 +27,7 @@ const ALL_MENU_ITEMS: SidebarMenuItem[] = [
     { key: 'products', label: 'Productos' },
     { key: 'inventory', label: 'Inventario' },
     { key: 'sales', label: 'Ventas' },
+    { key: 'users', label: 'Usuarios' },
 ]
 
 export default function AppLayout({ user, onLogout }: AppLayoutProps): ReactElement {
@@ -46,6 +48,7 @@ export default function AppLayout({ user, onLogout }: AppLayoutProps): ReactElem
         products: 'Productos',
         inventory: 'Inventario',
         sales: 'Ventas',
+        users: 'Usuarios',
     }), [])
 
     const handleToggleCollapse = useCallback(() => {
@@ -58,6 +61,7 @@ export default function AppLayout({ user, onLogout }: AppLayoutProps): ReactElem
             case 'products': return <ProductsPage />
             case 'inventory': return <InventoryPage />
             case 'sales': return <SalesPage user={user} />
+            case 'users': return <UsersPage user={user} />
             default: return <DashboardPage user={user} />
         }
     }

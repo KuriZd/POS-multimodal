@@ -1,4 +1,4 @@
-export type AppSection = 'dashboard' | 'products' | 'inventory' | 'sales'
+export type AppSection = 'dashboard' | 'products' | 'inventory' | 'sales' | 'users'
 
 export type SidebarMenuItem = {
   key: AppSection
