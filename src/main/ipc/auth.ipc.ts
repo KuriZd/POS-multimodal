@@ -1,5 +1,7 @@
-import { ipcMain } from 'electron'
+import { ipcMain, app } from 'electron'
 import bcrypt from 'bcryptjs'
+import fs from 'node:fs'
+import path from 'node:path'
 import { getLocalDb } from '../db/local-db'
 import { supabase } from '../supabase/client'
 
@@ -24,6 +26,35 @@ type LocalUserRow = {
 }
 
 let currentUser: AuthUser | null = null
+
+function sessionFilePath(): string {
+  return path.join(app.getPath('userData'), 'session.json')
+}
+
+function saveSession(user: AuthUser): void {
+  try {
+    fs.writeFileSync(sessionFilePath(), JSON.stringify(user), { encoding: 'utf-8', mode: 0o600 })
+  } catch (err) {
+    console.warn('[auth] No se pudo guardar la sesión:', err)
+  }
+}
+
+function clearSession(): void {
+  try {
+    fs.unlinkSync(sessionFilePath())
+  } catch {
+    // archivo puede no existir
+  }
+}
+
+function readSession(): AuthUser | null {
+  try {
+    const raw = fs.readFileSync(sessionFilePath(), 'utf-8')
+    return JSON.parse(raw) as AuthUser
+  } catch {
+    return null
+  }
+}
 
 export function registerAuthIpc(): void {
   ipcMain.handle('auth:login', async (_event, username: string, password: string) => {
@@ -61,7 +92,7 @@ export function registerAuthIpc(): void {
           active: Boolean(localUser.active),
           source: 'local'
         }
-
+        saveSession(currentUser)
         return currentUser
       }
     }
@@ -130,16 +161,20 @@ export function registerAuthIpc(): void {
       active: Boolean(remoteUser.active),
       source: 'remote'
     }
-
+    saveSession(currentUser)
     return currentUser
   })
 
   ipcMain.handle('auth:me', async () => {
+    if (!currentUser) {
+      currentUser = readSession()
+    }
     return currentUser
   })
 
   ipcMain.handle('auth:logout', async () => {
     currentUser = null
+    clearSession()
     return { ok: true }
   })
 }
