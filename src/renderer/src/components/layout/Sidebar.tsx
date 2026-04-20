@@ -84,7 +84,7 @@ export default function Sidebar({
                             aria-current={isActive ? 'page' : undefined} // ✅ accesibilidad
                             title={isCollapsed ? item.label : undefined}
                         >
-                            <img src={icon} alt="" className={styles.menuIcon} /> {/* ✅ alt="" porque el botón ya tiene aria-label */}
+                            <img src={icon} alt="" className={item.key === 'dashboard' ? styles.menuIconHome : styles.menuIcon} />
                             {!isCollapsed && (
                                 <span className={styles.menuLabel}>{item.label}</span>
                             )}

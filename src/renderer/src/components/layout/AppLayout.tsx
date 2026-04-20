@@ -15,17 +15,31 @@ type AppLayoutProps = {
     onLogout: () => void
 }
 
-export default function AppLayout({ user, onLogout }: AppLayoutProps): ReactElement {
-    const [activeSection, setActiveSection] = useState<AppSection>('dashboard')
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
-    const { status: syncStatus, lastSyncAt, sync } = useSync()
+const ROLE_ALLOWED_SECTIONS: Record<AppRole, AppSection[]> = {
+    ADMIN: ['dashboard', 'products', 'inventory', 'sales'],
+    SUPERVISOR: ['dashboard', 'products', 'inventory', 'sales'],
+    CASHIER: ['sales'],
+}
 
-    const menuItems = useMemo<SidebarMenuItem[]>(() => [
-        { key: 'dashboard', label: 'Inicio' },
-        { key: 'products', label: 'Productos' },
-        { key: 'inventory', label: 'Inventario' },
-        { key: 'sales', label: 'Ventas' },
-    ], [])
+const ALL_MENU_ITEMS: SidebarMenuItem[] = [
+    { key: 'dashboard', label: 'Inicio' },
+    { key: 'products', label: 'Productos' },
+    { key: 'inventory', label: 'Inventario' },
+    { key: 'sales', label: 'Ventas' },
+]
+
+export default function AppLayout({ user, onLogout }: AppLayoutProps): ReactElement {
+    const allowedSections = ROLE_ALLOWED_SECTIONS[user.role]
+    const defaultSection: AppSection = allowedSections.includes('dashboard') ? 'dashboard' : allowedSections[0]
+
+    const [activeSection, setActiveSection] = useState<AppSection>(defaultSection)
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
+    const { status: syncStatus, lastSyncAt, conflictCount, sync } = useSync()
+
+    const menuItems = useMemo<SidebarMenuItem[]>(
+        () => ALL_MENU_ITEMS.filter((item) => allowedSections.includes(item.key as AppSection)),
+        [user.role]
+    )
 
     const sectionTitleMap = useMemo<Record<AppSection, string>>(() => ({
         dashboard: 'Panel principal',
@@ -39,6 +53,7 @@ export default function AppLayout({ user, onLogout }: AppLayoutProps): ReactElem
     }, [])
 
     const renderSectionContent = (): ReactElement => {
+        if (!allowedSections.includes(activeSection)) return <SalesPage />
         switch (activeSection) {
             case 'products': return <ProductsPage />
             case 'inventory': return <InventoryPage />
@@ -66,6 +81,7 @@ export default function AppLayout({ user, onLogout }: AppLayoutProps): ReactElem
                     showUserSummary={!isSidebarCollapsed}
                     syncStatus={syncStatus}
                     lastSyncAt={lastSyncAt}
+                    conflictCount={conflictCount}
                     onSyncNow={sync}
                 />
 

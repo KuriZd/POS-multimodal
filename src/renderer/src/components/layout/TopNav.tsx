@@ -9,6 +9,7 @@ type TopNavProps = {
     showUserSummary: boolean
     syncStatus: SyncStatus
     lastSyncAt: Date | null
+    conflictCount: number
     onSyncNow: () => void
 }
 
@@ -60,6 +61,7 @@ export default function TopNav({
     title,
     syncStatus,
     lastSyncAt,
+    conflictCount,
     onSyncNow,
 }: TopNavProps): ReactElement {
     return (
@@ -92,10 +94,31 @@ export default function TopNav({
                 <button
                     type="button"
                     className={styles.actionButton}
-                    aria-label="Notificaciones"
-                    title="Notificaciones"
+                    aria-label={conflictCount > 0 ? `${conflictCount} conflicto(s) de sincronización` : 'Notificaciones'}
+                    title={conflictCount > 0 ? `${conflictCount} conflicto(s) de sincronización sin resolver` : 'Notificaciones'}
+                    style={{ position: 'relative' }}
                 >
                     <BellIcon />
+                    {conflictCount > 0 && (
+                        <span style={{
+                            position: 'absolute',
+                            top: '2px',
+                            right: '2px',
+                            minWidth: '16px',
+                            height: '16px',
+                            padding: '0 3px',
+                            borderRadius: '8px',
+                            background: '#e05353',
+                            color: '#fff',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            lineHeight: '16px',
+                            textAlign: 'center',
+                            pointerEvents: 'none',
+                        }}>
+                            {conflictCount > 9 ? '9+' : conflictCount}
+                        </span>
+                    )}
                 </button>
             </div>
 
