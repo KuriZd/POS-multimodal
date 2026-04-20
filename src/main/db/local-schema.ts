@@ -88,6 +88,33 @@ CREATE TABLE IF NOT EXISTS "Payment" (
   "updatedAt" TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS "Service" (
+  id INTEGER PRIMARY KEY,
+  "publicId" TEXT UNIQUE,
+  code TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  "durationMin" INTEGER NOT NULL DEFAULT 0,
+  cost INTEGER NOT NULL DEFAULT 0,
+  price INTEGER NOT NULL DEFAULT 0,
+  "profitPctBp" INTEGER NOT NULL DEFAULT 0,
+  active INTEGER NOT NULL DEFAULT 1,
+  "createdAt" TEXT,
+  "updatedAt" TEXT,
+  "deletedAt" TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_service_code ON "Service"(code);
+
+CREATE TABLE IF NOT EXISTS "ServiceSupply" (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  "serviceId" INTEGER NOT NULL,
+  "productId" INTEGER NOT NULL,
+  qty INTEGER NOT NULL DEFAULT 1,
+  UNIQUE("serviceId", "productId"),
+  FOREIGN KEY("serviceId") REFERENCES "Service"(id) ON DELETE CASCADE,
+  FOREIGN KEY("productId") REFERENCES "Product"(id)
+);
+
 CREATE TABLE IF NOT EXISTS sync_queue (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   entity_name TEXT NOT NULL,
