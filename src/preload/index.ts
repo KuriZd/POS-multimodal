@@ -12,8 +12,18 @@ contextBridge.exposeInMainWorld('pos', {
   products: {
     findByCode: (code: string) => ipcRenderer.invoke('products:findByCode', code)
   },
+  services: {
+    get: (id: number) => ipcRenderer.invoke('services:get', id),
+    getByCode: (code: string) => ipcRenderer.invoke('services:getByCode', code),
+    list: (args: unknown) => ipcRenderer.invoke('services:list', args),
+    create: (payload: unknown) => ipcRenderer.invoke('services:create', payload),
+    update: (id: number, payload: unknown) => ipcRenderer.invoke('services:update', id, payload),
+    remove: (id: number) => ipcRenderer.invoke('services:remove', id)
+  },
   sync: {
     pullProducts: () => ipcRenderer.invoke('sync:pullProducts'),
-    pullAll: () => ipcRenderer.invoke('sync:pullAll')
+    pullAll: () => ipcRenderer.invoke('sync:pullAll'),
+    pushPending: () => ipcRenderer.invoke('sync:pushPending'),
+    conflicts: () => ipcRenderer.invoke('sync:conflicts')
   }
 })
