@@ -8,6 +8,7 @@ export type CreateProductPayload = {
   name: string
   price: number
   cost: number
+  /** Profit margin in basis points. 1 bp = 0.01%, so 1000 bp = 10% (factor 0.10). */
   profitPctBp: number
   stock: number
   stockMin: number
@@ -68,6 +69,7 @@ export type CreateServicePayload = {
   durationMin: number
   cost: number
   price: number
+  /** Profit margin in basis points. 1 bp = 0.01%, so 1000 bp = 10% (factor 0.10). */
   profitPctBp: number
   supplies: ServiceSupplyInput[]
 }

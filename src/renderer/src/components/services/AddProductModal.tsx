@@ -16,6 +16,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import styles from './AddProductModal.module.css'
 import { productRepository, type CreateProductPayload } from '../../repositories/productRepository'
 import { supabase } from '../../lib/supabaseClient'
+import { bpToPctString, formatNumber, percentToBp } from '../../lib/formatters'
 
 type Props = {
   open: boolean
@@ -154,10 +155,7 @@ function parseInteger(input: string): number | null {
   return Math.trunc(n)
 }
 
-function formatNumber(n: number, decimals = 2): string {
-  const fixed = n.toFixed(decimals)
-  return fixed.replace(/\.?0+$/g, '')
-}
+// formatNumber, percentToBp, bpToPctString imported from formatters
 
 function computeProfitPct(buy: number, sell: number): number | null {
   if (!(buy > 0)) return null
@@ -177,13 +175,7 @@ function fromCentsToInput(cents: number): string {
   return formatNumber((cents ?? 0) / 100, 2)
 }
 
-function pctToBp(pct: number): number {
-  return Math.round(pct * 100)
-}
-
-function bpToPctInput(bp: number): string {
-  return formatNumber((bp ?? 0) / 100, 2)
-}
+const bpToPctInput = bpToPctString
 
 async function fileToDataUrl(file: File): Promise<string> {
   return await new Promise((resolve, reject) => {
@@ -210,7 +202,7 @@ async function buildCreateProductPayload(
     stockMax: parseInteger(form.stockMax) ?? 0,
     cost: toCents(buy),
     price: toCents(sell),
-    profitPctBp: pctToBp(pct),
+    profitPctBp: percentToBp(pct),
     imageDataUrl: null
   }
 
@@ -235,7 +227,7 @@ async function buildUpdateProductPayload(
     stockMax: parseInteger(form.stockMax) ?? 0,
     cost: toCents(buy),
     price: toCents(sell),
-    profitPctBp: pctToBp(pct)
+    profitPctBp: percentToBp(pct)
   }
 
   if (imageIntent === 'remove') {
@@ -366,7 +358,7 @@ function toSupabasePayload(
       stock_max: parseInteger(form.stockMax) ?? 0,
       cost: toCents(buy),
       price: toCents(sell),
-      profit_pct_bp: pctToBp(pct),
+      profit_pct_bp: percentToBp(pct),
       image_url: baseImageValue,
       active: true
     }
@@ -380,7 +372,7 @@ function toSupabasePayload(
     stockMax: parseInteger(form.stockMax) ?? 0,
     cost: toCents(buy),
     price: toCents(sell),
-    profitPctBp: pctToBp(pct),
+    profitPctBp: percentToBp(pct),
     imagePath: baseImageValue,
     active: true
   }

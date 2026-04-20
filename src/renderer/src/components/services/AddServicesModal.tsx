@@ -13,6 +13,7 @@ import {
   type ServiceDetails
 } from '../../repositories/serviceRepository'
 import { supabase } from '../../lib/supabaseClient'
+import { bpToPctString, formatNumber, percentToBp } from '../../lib/formatters'
 
 type Props = {
   open: boolean
@@ -94,10 +95,7 @@ function parseInteger(input: string): number | null {
   return Number.isFinite(n) ? Math.trunc(n) : null
 }
 
-function formatNumber(n: number, decimals = 2): string {
-  const fixed = n.toFixed(decimals)
-  return fixed.replace(/\.?0+$/g, '')
-}
+// formatNumber, percentToBp, bpToPctString imported from formatters
 
 function computeProfitPct(buy: number, sell: number): number | null {
   if (!(buy > 0)) return null
@@ -117,13 +115,7 @@ function fromCentsToInput(cents: number): string {
   return formatNumber((cents ?? 0) / 100, 2)
 }
 
-function pctToBp(pct: number): number {
-  return Math.round(pct * 100)
-}
-
-function bpToPctInput(bp: number): string {
-  return formatNumber((bp ?? 0) / 100, 2)
-}
+const bpToPctInput = bpToPctString
 
 const QR_DOWNLOAD_SIZE = 512
 
@@ -1169,7 +1161,7 @@ export default function AddServiceModal({
         durationMin: parseInteger(form.durationMin) ?? 0,
         cost: toCents(parseDecimal(form.buyPrice) ?? 0),
         price: toCents(parseDecimal(form.sellPrice) ?? 0),
-        profitPctBp: pctToBp(parseDecimal(form.profitPct) ?? 0),
+        profitPctBp: percentToBp(parseDecimal(form.profitPct) ?? 0),
         supplies
       }
 
