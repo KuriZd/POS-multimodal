@@ -53,11 +53,11 @@ export default function AppLayout({ user, onLogout }: AppLayoutProps): ReactElem
     }, [])
 
     const renderSectionContent = (): ReactElement => {
-        if (!allowedSections.includes(activeSection)) return <SalesPage />
+        if (!allowedSections.includes(activeSection)) return <DashboardPage user={user} />
         switch (activeSection) {
             case 'products': return <ProductsPage />
             case 'inventory': return <InventoryPage />
-            case 'sales': return <SalesPage />
+            case 'sales': return <SalesPage user={user} />
             default: return <DashboardPage user={user} />
         }
     }

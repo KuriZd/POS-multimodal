@@ -10,7 +10,13 @@ contextBridge.exposeInMainWorld('pos', {
     logout: () => ipcRenderer.invoke('auth:logout')
   },
   products: {
-    findByCode: (code: string) => ipcRenderer.invoke('products:findByCode', code)
+    findByCode: (code: string) => ipcRenderer.invoke('products:findByCode', code),
+    get: (id: number) => ipcRenderer.invoke('products:get', id),
+    getBySku: (sku: string) => ipcRenderer.invoke('products:getBySku', sku),
+    list: (args: unknown) => ipcRenderer.invoke('products:list', args),
+    create: (payload: unknown) => ipcRenderer.invoke('products:create', payload),
+    update: (id: number, payload: unknown) => ipcRenderer.invoke('products:update', id, payload),
+    remove: (id: number) => ipcRenderer.invoke('products:remove', id)
   },
   services: {
     get: (id: number) => ipcRenderer.invoke('services:get', id),
@@ -19,6 +25,9 @@ contextBridge.exposeInMainWorld('pos', {
     create: (payload: unknown) => ipcRenderer.invoke('services:create', payload),
     update: (id: number, payload: unknown) => ipcRenderer.invoke('services:update', id, payload),
     remove: (id: number) => ipcRenderer.invoke('services:remove', id)
+  },
+  sales: {
+    create: (payload: unknown) => ipcRenderer.invoke('sales:create', payload)
   },
   sync: {
     pullProducts: () => ipcRenderer.invoke('sync:pullProducts'),

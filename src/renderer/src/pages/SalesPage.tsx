@@ -39,18 +39,20 @@ type ServiceSize = 'carta' | 'oficio'
 
 type CatalogItem = {
   id: number
+  publicId: string
   name: string
-  price: number // pesos
+  price: number
   type: ItemType
   stock?: number
   sku?: string
   code?: string
-  hasSize?: boolean // copia/impresión con opción de tamaño
+  hasSize?: boolean
 }
 
 type CartEntry = {
   uid: string
   itemId: number
+  publicId: string
   name: string
   price: number
   qty: number
@@ -59,37 +61,42 @@ type CartEntry = {
   expanded?: boolean
 }
 
-// ─── Mock Catalog ────────────────────────────────────────────────────────────
+// ─── Catalog loader ───────────────────────────────────────────────────────────
 
-const CATALOG: CatalogItem[] = [
-  { id: 1,   name: 'Cuaderno profesional',    price: 25,   type: 'product',  stock: 45,  sku: 'CUAD-001' },
-  { id: 2,   name: 'Resma hojas blancas 500', price: 85,   type: 'product',  stock: 12,  sku: 'HOJA-500' },
-  { id: 3,   name: 'Lápiz #2 Mirado',         price: 4,    type: 'product',  stock: 200, sku: 'LAP-002'  },
-  { id: 4,   name: 'Pluma azul BIC',           price: 5,    type: 'product',  stock: 180, sku: 'PLU-001'  },
-  { id: 5,   name: 'Colores Faber 12 pzas',   price: 45,   type: 'product',  stock: 30,  sku: 'COL-012'  },
-  { id: 6,   name: 'Carpeta argollas',         price: 35,   type: 'product',  stock: 25,  sku: 'CARP-001' },
-  { id: 7,   name: 'Tijeras escolares',        price: 18,   type: 'product',  stock: 3,   sku: 'TIJ-001'  },
-  { id: 8,   name: 'Marcador permanente',      price: 12,   type: 'product',  stock: 75,  sku: 'MARC-001' },
-  { id: 9,   name: 'Cartulina blanca',         price: 8,    type: 'product',  stock: 100, sku: 'CART-001' },
-  { id: 10,  name: 'Folder Manila c/10',       price: 20,   type: 'product',  stock: 40,  sku: 'FOLD-010' },
-  { id: 11,  name: 'Regla 30 cm',              price: 10,   type: 'product',  stock: 80,  sku: 'REGL-030' },
-  { id: 12,  name: 'Calculadora básica',       price: 120,  type: 'product',  stock: 15,  sku: 'CALC-001' },
-  { id: 13,  name: 'Pegamento UHU 21g',        price: 15,   type: 'product',  stock: 55,  sku: 'PEG-021'  },
-  { id: 14,  name: 'Post-it 3×3 100 hojas',   price: 28,   type: 'product',  stock: 35,  sku: 'POST-001' },
-  { id: 15,  name: 'Borrador blanco',          price: 3,    type: 'product',  stock: 2,   sku: 'BOR-001'  },
-  { id: 16,  name: 'Cinta adhesiva',           price: 9,    type: 'product',  stock: 60,  sku: 'CINT-001' },
-  { id: 17,  name: 'Corrector líquido',        price: 14,   type: 'product',  stock: 45,  sku: 'CORR-001' },
-  { id: 18,  name: 'Engrapadora chica',        price: 55,   type: 'product',  stock: 20,  sku: 'ENGR-001' },
-  { id: 101, name: 'Copia B/N',               price: 1.50, type: 'service',  code: 'SVC-COPY-BN',  hasSize: true },
-  { id: 102, name: 'Copia color',             price: 5,    type: 'service',  code: 'SVC-COPY-COL', hasSize: true },
-  { id: 103, name: 'Impresión B/N',           price: 3,    type: 'service',  code: 'SVC-IMP-BN',   hasSize: true },
-  { id: 104, name: 'Impresión color',         price: 8,    type: 'service',  code: 'SVC-IMP-COL',  hasSize: true },
-  { id: 105, name: 'Engargolado',             price: 25,   type: 'service',  code: 'SVC-EGAR'  },
-  { id: 106, name: 'Enmicado carta',          price: 15,   type: 'service',  code: 'SVC-ENMIC' },
-  { id: 107, name: 'Escaneo',                 price: 5,    type: 'service',  code: 'SVC-SCAN',    hasSize: true },
-  { id: 108, name: 'Plastificado',            price: 20,   type: 'service',  code: 'SVC-PLAST' },
-  { id: 109, name: 'Recarga tóner',           price: 80,   type: 'service',  code: 'SVC-RECAR' },
-]
+async function loadCatalog(): Promise<CatalogItem[]> {
+  const items: CatalogItem[] = []
+
+  try {
+    const result = await window.pos.products.list({ page: 1, pageSize: 200, active: true })
+    for (const p of result.items) {
+      items.push({
+        id: p.id,
+        publicId: p.publicId,
+        name: p.name,
+        price: p.price,
+        type: 'product',
+        stock: p.stock ?? undefined,
+        sku: p.sku,
+      })
+    }
+  } catch { /* sin productos locales */ }
+
+  try {
+    const result = await window.pos.services.list({ page: 1, pageSize: 200, active: true })
+    for (const s of result.items) {
+      items.push({
+        id: s.id,
+        publicId: s.publicId ?? s.code,
+        name: s.name,
+        price: s.price,
+        type: 'service',
+        code: s.code,
+      })
+    }
+  } catch { /* sin servicios locales */ }
+
+  return items
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -269,8 +276,7 @@ type CartRowProps = {
 }
 
 function CartRow({ entry, onQtyChange, onRemove, onToggleExpand, onSizeChange }: CartRowProps): ReactElement {
-  const catalogItem = CATALOG.find(c => c.id === entry.itemId)
-  const hasSize = catalogItem?.hasSize ?? false
+  const hasSize = entry.size !== undefined
 
   return (
     <div className={`${styles.cartRow} ${entry.type === 'service' ? styles.cartRowSvc : ''}`}>
@@ -447,7 +453,9 @@ function PaymentSection({
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export default function SalesPage(): ReactElement {
+export default function SalesPage({ user }: { user: AuthUser }): ReactElement {
+  const [catalog, setCatalog] = useState<CatalogItem[]>([])
+  const [catalogLoading, setCatalogLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<FilterKey>('none')
   const [cart, setCart] = useState<CartEntry[]>([])
@@ -456,12 +464,20 @@ export default function SalesPage(): ReactElement {
   const [discount, setDiscount] = useState(0)
   const [notes, setNotes] = useState('')
   const [notesOpen, setNotesOpen] = useState(false)
+  const [charging, setCharging] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    void loadCatalog().then((items) => {
+      setCatalog(items)
+      setCatalogLoading(false)
+    })
+  }, [])
 
   // ── Catalog filtering ────────────────────────────────────────
 
   const filtered = useMemo<CatalogItem[]>(() => {
-    let items = CATALOG
+    let items = catalog
 
     const q = search.trim().toLowerCase()
     if (q) {
@@ -481,7 +497,7 @@ export default function SalesPage(): ReactElement {
     if (filter === 'age') copy.sort((a, b) => b.id - a.id)
 
     return copy
-  }, [search, filter])
+  }, [catalog, search, filter])
 
   // ── Cart ops ─────────────────────────────────────────────────
 
@@ -494,6 +510,7 @@ export default function SalesPage(): ReactElement {
       return [...prev, {
         uid: uid(),
         itemId: item.id,
+        publicId: item.publicId,
         name: item.name,
         price: item.price,
         qty: 1,
@@ -542,11 +559,38 @@ export default function SalesPage(): ReactElement {
     if (e.key === 'Escape') setSearch('')
   }, [])
 
-  const handleCharge = useCallback(() => {
-    if (cart.length === 0) return
-    alert(`Venta procesada por ${fmt(total)}`)
-    clearCart()
-  }, [cart, total, clearCart])
+  const handleCharge = useCallback(async () => {
+    if (cart.length === 0 || charging) return
+    setCharging(true)
+    try {
+      const result = await window.pos.sales.create({
+        cashierId: user.id,
+        items: cart.map(e => ({
+          itemType: e.type,
+          productPublicId: e.type === 'product' ? e.publicId : null,
+          servicePublicId: e.type === 'service' ? e.publicId : null,
+          qty: e.qty,
+          price: e.price,
+          discount: 0,
+          lineTotal: e.price * e.qty,
+        })),
+        subtotal,
+        tax,
+        total,
+        payment: {
+          method: payMethod,
+          amount: parseFloat(cashReceived) || total,
+        },
+      })
+      clearCart()
+      alert(`Venta ${result.folio} registrada por ${fmt(total)}`)
+    } catch (err) {
+      console.error('[SalesPage] Error al registrar venta:', err)
+      alert('No se pudo registrar la venta. Intenta de nuevo.')
+    } finally {
+      setCharging(false)
+    }
+  }, [cart, charging, user.id, subtotal, tax, total, payMethod, cashReceived, clearCart])
 
   // ── Render ───────────────────────────────────────────────────
 
@@ -557,7 +601,7 @@ export default function SalesPage(): ReactElement {
         onSearch={setSearch}
         onSearchKeyDown={handleSearchKeyDown}
         searchRef={searchRef}
-        cashierName="Oscar Z."
+        cashierName={user.name}
       />
 
       <div className={styles.body}>
@@ -566,17 +610,24 @@ export default function SalesPage(): ReactElement {
           <SalesFilters
             active={filter}
             onChange={setFilter}
-            total={CATALOG.length}
+            total={catalog.length}
             filtered={filtered.length}
           />
 
-          {filtered.length === 0 ? (
+          {catalogLoading ? (
+            <div className={styles.noResults}>
+              <FiRefreshCw size={24} style={{ animation: 'spin 1s linear infinite' }} />
+              <p>Cargando catálogo…</p>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className={styles.noResults}>
               <FiSearch size={28} />
-              <p>Sin resultados para <strong>"{search}"</strong></p>
-              <button className={styles.noResultsReset} onClick={() => { setSearch(''); setFilter('none') }}>
-                Limpiar filtros
-              </button>
+              <p>{catalog.length === 0 ? 'No hay productos ni servicios en la base de datos local.' : <>Sin resultados para <strong>"{search}"</strong></>}</p>
+              {catalog.length > 0 && (
+                <button className={styles.noResultsReset} onClick={() => { setSearch(''); setFilter('none') }}>
+                  Limpiar filtros
+                </button>
+              )}
             </div>
           ) : (
             <div className={styles.grid}>
@@ -675,8 +726,8 @@ export default function SalesPage(): ReactElement {
             cashReceived={cashReceived}
             onMethodChange={setPayMethod}
             onCashChange={setCashReceived}
-            onCharge={handleCharge}
-            disabled={cart.length === 0}
+            onCharge={() => { void handleCharge() }}
+            disabled={cart.length === 0 || charging}
           />
         </aside>
       </div>

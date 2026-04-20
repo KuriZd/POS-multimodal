@@ -42,6 +42,7 @@ export type ProductsListArgs = {
 
 export type ProductListItem = {
   id: number
+  publicId: string
   sku: string
   barcode: string | null
   name: string
@@ -97,6 +98,7 @@ export type ServicesListArgs = {
 
 export type ServiceListItem = {
   id: number
+  publicId?: string
   code: string
   name: string
   price: number
@@ -115,35 +117,4 @@ export type ServicesListResult = {
   pageSize: number
 }
 
-declare global {
-  interface Window {
-    pos: {
-      sync: {
-        pullProducts: () => Promise<{ ok: boolean; count: number }>
-        pullAll: () => Promise<{ ok: boolean; syncedAt: string; products: number }>
-      }
-      products: {
-        create: (payload: CreateProductPayload) => Promise<{ id: number }>
-        list: (args: ProductsListArgs) => Promise<ProductsListResult>
-        get: (id: number) => Promise<ProductDetails>
-        getBySku?: (sku: string) => Promise<ProductDetails | null>
-        update: (
-          id: number,
-          payload: Partial<CreateProductPayload>
-        ) => Promise<{ id: number } | void>
-        remove: (id: number) => Promise<{ ok: true }>
-      }
-      services: {
-        list: (args: ServicesListArgs) => Promise<ServicesListResult>
-        get: (id: number) => Promise<ServiceDetails>
-        getByCode?: (code: string) => Promise<ServiceDetails | null>
-        create: (payload: CreateServicePayload) => Promise<{ id: number } | void>
-        update: (
-          id: number,
-          payload: Partial<CreateServicePayload>
-        ) => Promise<{ id: number } | void>
-        remove: (id: number) => Promise<{ ok: true }>
-      }
-    }
-  }
-}
+// Window.pos is declared in src/renderer/src/env.d.ts (single source of truth)

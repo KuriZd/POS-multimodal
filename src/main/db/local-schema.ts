@@ -136,5 +136,10 @@ CREATE TABLE IF NOT EXISTS device_config (
 );
 
 CREATE INDEX IF NOT EXISTS idx_product_code ON "Product"(sku, barcode);
+CREATE INDEX IF NOT EXISTS idx_product_active ON "Product"(active, "deletedAt");
+CREATE INDEX IF NOT EXISTS idx_sale_cashier ON "Sale"("cashierId");
+CREATE INDEX IF NOT EXISTS idx_sale_item_sale ON "SaleItem"("salePublicId");
+CREATE INDEX IF NOT EXISTS idx_payment_sale ON "Payment"("salePublicId");
 CREATE INDEX IF NOT EXISTS idx_sync_queue_status ON sync_queue(status);
+CREATE INDEX IF NOT EXISTS idx_sync_queue_entity ON sync_queue(entity_name, status);
 `

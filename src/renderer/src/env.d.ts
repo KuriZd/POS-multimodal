@@ -53,6 +53,24 @@ interface Window {
       update: (id: number, payload: Partial<import('./types/pos').CreateServicePayload>) => Promise<{ id: number } | void>
       remove: (id: number) => Promise<{ ok: true }>
     }
+    sales: {
+      create: (payload: {
+        cashierId: number
+        items: Array<{
+          itemType: 'product' | 'service'
+          productPublicId: string | null
+          servicePublicId: string | null
+          qty: number
+          price: number
+          discount: number
+          lineTotal: number
+        }>
+        subtotal: number
+        tax: number
+        total: number
+        payment: { method: string; amount: number }
+      }) => Promise<{ ok: true; folio: string; salePublicId: string }>
+    }
     sync: {
       pullProducts: () => Promise<{ ok: boolean; count: number }>
       pullAll: () => Promise<{

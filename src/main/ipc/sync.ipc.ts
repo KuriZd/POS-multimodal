@@ -377,7 +377,7 @@ async function syncServiceSupplies(): Promise<{ count: number }> {
 
 export function registerSyncIpc(): void {
   ipcMain.handle('sync:pullProducts', async () => {
-    const { count } = await syncProducts()
+    const { count } = await syncProducts([])
     return { ok: true, count }
   })
 

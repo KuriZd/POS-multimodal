@@ -103,7 +103,7 @@ export function registerServicesIpc(): void {
     ).get(params) as { count: number }
 
     const items = db.prepare(
-      `SELECT id, code, name, "durationMin" as durationMin, cost, price,
+      `SELECT id, "publicId", code, name, "durationMin" as durationMin, cost, price,
               "profitPctBp" as profitPctBp, active, "createdAt" as createdAt
        FROM "Service" WHERE ${where} ORDER BY id DESC LIMIT @pageSize OFFSET @offset`
     ).all(params) as ServiceRow[]
@@ -183,7 +183,8 @@ export function registerServicesIpc(): void {
 
   ipcMain.handle('services:remove', (_event, id: number) => {
     const db = getLocalDb()
-    db.prepare(`UPDATE "Service" SET "deletedAt" = ? WHERE id = ?`).run(new Date().toISOString(), id)
+    const now = new Date().toISOString()
+    db.prepare(`UPDATE "Service" SET "deletedAt" = ?, "updatedAt" = ? WHERE id = ?`).run(now, now, id)
     return { ok: true }
   })
 }
