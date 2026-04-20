@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron'
 import path from 'node:path'
 import { getLocalDb } from './db/local-db'
 import { registerProductsIpc } from './ipc/products.ipc'
+import { registerServicesIpc } from './ipc/services.ipc'
 import { registerSyncIpc } from './ipc/sync.ipc'
 import { registerAuthIpc } from './ipc/auth.ipc'
 
@@ -31,6 +32,7 @@ app.whenReady().then(() => {
   getLocalDb()
   registerAuthIpc()
   registerProductsIpc()
+  registerServicesIpc()
   registerSyncIpc()
   createWindow()
 })
