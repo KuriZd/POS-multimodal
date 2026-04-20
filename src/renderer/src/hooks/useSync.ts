@@ -11,6 +11,7 @@ export function useSync() {
     const stored = localStorage.getItem(LAST_SYNC_KEY)
     return stored ? new Date(stored) : null
   })
+  const [conflictCount, setConflictCount] = useState(0)
   const isSyncing = useRef(false)
 
   const sync = useCallback(async () => {
@@ -18,10 +19,11 @@ export function useSync() {
     isSyncing.current = true
     setStatus('syncing')
     try {
-      await window.pos.sync.pullAll()
+      const result = await window.pos.sync.pullAll()
       const now = new Date()
       localStorage.setItem(LAST_SYNC_KEY, now.toISOString())
       setLastSyncAt(now)
+      setConflictCount(result.conflictCount)
       setStatus('ok')
     } catch (err) {
       console.error('[sync] Error al sincronizar con Supabase:', err)
@@ -41,5 +43,5 @@ export function useSync() {
     return () => clearInterval(interval)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { status, lastSyncAt, sync }
+  return { status, lastSyncAt, conflictCount, sync }
 }

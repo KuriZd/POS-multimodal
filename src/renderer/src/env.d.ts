@@ -2,6 +2,14 @@
 
 type AppRole = 'ADMIN' | 'CASHIER' | 'SUPERVISOR'
 
+interface SyncConflict {
+  entityName: string
+  publicId: string
+  localUpdatedAt: string
+  remoteUpdatedAt: string
+  detectedAt: string
+}
+
 interface AuthUser {
   id: number
   name: string
@@ -47,6 +55,15 @@ interface Window {
     }
     sync: {
       pullProducts: () => Promise<{ ok: boolean; count: number }>
+      pullAll: () => Promise<{
+        ok: boolean
+        syncedAt: string
+        push: { pushed: number; failed: number }
+        conflictCount: number
+        counts: { categories: number; products: number; services: number; serviceSupplies: number }
+      }>
+      pushPending: () => Promise<{ ok: boolean; pushed: number; failed: number }>
+      conflicts: () => Promise<SyncConflict[]>
     }
   }
 }
