@@ -23,8 +23,6 @@ import {
   FiRefreshCw,
 } from 'react-icons/fi'
 import {
-  MdOutlineContentCopy,
-  MdOutlinePrint,
   MdOutlineBookmarkBorder,
 } from 'react-icons/md'
 import { AiOutlineProduct } from 'react-icons/ai'

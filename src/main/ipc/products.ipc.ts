@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { getLocalDb } from '../db/local-db'
+import { enqueueSync } from '../sync/sync-queue'
 
 type ProductRow = {
   id: number
@@ -39,6 +40,33 @@ const SELECT_COLUMNS = `
 
 function mapRow(row: ProductRow) {
   return { ...row, active: Boolean(row.active) }
+}
+
+function getProductForSync(db: ReturnType<typeof getLocalDb>, id: number) {
+  return db.prepare(`
+    SELECT
+      id,
+      "publicId" as publicId,
+      sku,
+      barcode,
+      name,
+      price,
+      cost,
+      "profitPctBp" as profitPctBp,
+      stock,
+      "stockMin" as stockMin,
+      "stockMax" as stockMax,
+      "imagePath" as imagePath,
+      "taxRateBp" as taxRateBp,
+      "categoryId" as categoryId,
+      active,
+      "createdAt" as createdAt,
+      "updatedAt" as updatedAt,
+      "deletedAt" as deletedAt
+    FROM "Product"
+    WHERE id = ?
+    LIMIT 1
+  `).get(id) as Record<string, unknown> | undefined
 }
 
 export function registerProductsIpc(): void {
@@ -132,7 +160,11 @@ export function registerProductsIpc(): void {
       now
     })
 
-    return { id: Number(result.lastInsertRowid) }
+    const id = Number(result.lastInsertRowid)
+    const row = getProductForSync(db, id)
+    if (row) enqueueSync('Product', publicId, 'INSERT', row)
+
+    return { id }
   })
 
   ipcMain.handle('products:update', (_event, id: number, payload: Partial<CreateProductPayload>) => {
@@ -152,6 +184,10 @@ export function registerProductsIpc(): void {
     if (payload.imageDataUrl !== undefined){ sets.push('"imagePath" = @imagePath');       params.imagePath = payload.imageDataUrl }
 
     db.prepare(`UPDATE "Product" SET ${sets.join(', ')} WHERE id = @id AND "deletedAt" IS NULL`).run(params)
+    const row = getProductForSync(db, id)
+    if (row && typeof row.publicId === 'string') {
+      enqueueSync('Product', row.publicId, 'UPDATE', row)
+    }
     return { id }
   })
 
@@ -162,6 +198,10 @@ export function registerProductsIpc(): void {
       UPDATE "Product" SET "deletedAt" = ?, "updatedAt" = ?, active = 0
       WHERE id = ? AND "deletedAt" IS NULL
     `).run(now, now, id)
+    const row = getProductForSync(db, id)
+    if (row && typeof row.publicId === 'string') {
+      enqueueSync('Product', row.publicId, 'DELETE', { publicId: row.publicId, deletedAt: now })
+    }
     return { ok: true as const }
   })
 }

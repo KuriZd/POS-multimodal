@@ -63,6 +63,10 @@ type LocalServicesApi = {
   remove?: (id: number) => Promise<void>
 }
 
+type SyncBridge = {
+  pullAll?: () => Promise<unknown>
+}
+
 function sortProducts(items: ProductListItem[], key: FilterKey): ProductListItem[] {
   const copy = [...items]
 
@@ -112,6 +116,10 @@ function getLocalProductsApi(): LocalProductsApi | null {
 
 function getLocalServicesApi(): LocalServicesApi | null {
   return (window.pos?.services as unknown as LocalServicesApi | undefined) ?? null
+}
+
+function getSyncBridge(): SyncBridge | null {
+  return (window.pos?.sync as unknown as SyncBridge | undefined) ?? null
 }
 
 function normalizeProductFromSupabase(row: Record<string, unknown>): ProductListItem {
@@ -417,8 +425,11 @@ export default function ProductsView(): JSX.Element {
         await productsApi.remove(id)
       }
 
-      const { error } = await supabase.from('Product').update({ active: false }).eq('id', id)
-      if (error) throw new Error(error.message)
+      if (true) {
+        const { error } = await supabase.from('Product').update({ active: false }).eq('id', id)
+        if (error) throw new Error(error.message)
+        await getSyncBridge()?.pullAll?.().catch(() => undefined)
+      }
 
       const fallbackPage = page > 1 && productsData.items.length === 1 ? page - 1 : page
       setPage(fallbackPage)
@@ -437,8 +448,11 @@ export default function ProductsView(): JSX.Element {
         await servicesApi.remove(id)
       }
 
-      const { error } = await supabase.from('Service').update({ active: false }).eq('id', id)
-      if (error) throw new Error(error.message)
+      if (true) {
+        const { error } = await supabase.from('Service').update({ active: false }).eq('id', id)
+        if (error) throw new Error(error.message)
+        await getSyncBridge()?.pullAll?.().catch(() => undefined)
+      }
 
       const fallbackPage = page > 1 && servicesData.items.length === 1 ? page - 1 : page
       setPage(fallbackPage)

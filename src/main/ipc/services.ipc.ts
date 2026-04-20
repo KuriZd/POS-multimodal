@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { getLocalDb } from '../db/local-db'
+import { enqueueSync } from '../sync/sync-queue'
 
 type ServiceRow = {
   id: number
@@ -52,6 +53,27 @@ function getSupplies(db: ReturnType<typeof getLocalDb>, serviceId: number): Supp
   return db.prepare(
     `SELECT "productId", qty FROM "ServiceSupply" WHERE "serviceId" = ?`
   ).all(serviceId) as SupplyRow[]
+}
+
+function getServiceForSync(db: ReturnType<typeof getLocalDb>, id: number) {
+  return db.prepare(`
+    SELECT
+      id,
+      "publicId" as publicId,
+      code,
+      name,
+      "durationMin" as durationMin,
+      cost,
+      price,
+      "profitPctBp" as profitPctBp,
+      active,
+      "createdAt" as createdAt,
+      "updatedAt" as updatedAt,
+      "deletedAt" as deletedAt
+    FROM "Service"
+    WHERE id = ?
+    LIMIT 1
+  `).get(id) as Record<string, unknown> | undefined
 }
 
 export function registerServicesIpc(): void {
@@ -119,11 +141,13 @@ export function registerServicesIpc(): void {
   ipcMain.handle('services:create', (_event, payload: CreateServicePayload) => {
     const db = getLocalDb()
     const now = new Date().toISOString()
+    const publicId = crypto.randomUUID()
 
     const result = db.prepare(
-      `INSERT INTO "Service" (code, name, "durationMin", cost, price, "profitPctBp", active, "createdAt", "updatedAt")
-       VALUES (@code, @name, @durationMin, @cost, @price, @profitPctBp, 1, @now, @now)`
+      `INSERT INTO "Service" ("publicId", code, name, "durationMin", cost, price, "profitPctBp", active, "createdAt", "updatedAt")
+       VALUES (@publicId, @code, @name, @durationMin, @cost, @price, @profitPctBp, 1, @now, @now)`
     ).run({
+      publicId,
       code: payload.code,
       name: payload.name,
       durationMin: payload.durationMin,
@@ -144,6 +168,12 @@ export function registerServicesIpc(): void {
           insertSupply.run(serviceId, s.productId, s.qty)
         }
       })()
+    }
+
+    const serviceRow = getServiceForSync(db, serviceId)
+    if (serviceRow) {
+      enqueueSync('Service', publicId, 'INSERT', serviceRow)
+      enqueueSync('ServiceSupply', publicId, 'REPLACE', getSupplies(db, serviceId))
     }
 
     return { id: serviceId }
@@ -178,6 +208,12 @@ export function registerServicesIpc(): void {
       })()
     }
 
+    const serviceRow = getServiceForSync(db, id)
+    if (serviceRow && typeof serviceRow.publicId === 'string') {
+      enqueueSync('Service', serviceRow.publicId, 'UPDATE', serviceRow)
+      enqueueSync('ServiceSupply', serviceRow.publicId, 'REPLACE', getSupplies(db, id))
+    }
+
     return { id }
   })
 
@@ -185,6 +221,10 @@ export function registerServicesIpc(): void {
     const db = getLocalDb()
     const now = new Date().toISOString()
     db.prepare(`UPDATE "Service" SET "deletedAt" = ?, "updatedAt" = ? WHERE id = ?`).run(now, now, id)
+    const serviceRow = getServiceForSync(db, id)
+    if (serviceRow && typeof serviceRow.publicId === 'string') {
+      enqueueSync('Service', serviceRow.publicId, 'DELETE', { publicId: serviceRow.publicId, deletedAt: now })
+    }
     return { ok: true }
   })
 }

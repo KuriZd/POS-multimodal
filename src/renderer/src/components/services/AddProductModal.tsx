@@ -338,46 +338,6 @@ function mapSupabaseRowToDetails(row: SupabaseProductRow): ProductDetails {
   }
 }
 
-function toSupabasePayload(
-  form: FormState,
-  imageDataUrl: string | null,
-  imageIntent: ImageIntent,
-  variant: 'snake' | 'camel'
-): Record<string, unknown> {
-  const buy = parseDecimal(form.buyPrice) ?? 0
-  const sell = parseDecimal(form.sellPrice) ?? 0
-  const pct = parseDecimal(form.profitPct) ?? 0
-  const baseImageValue = imageIntent === 'remove' ? null : imageDataUrl
-
-  if (variant === 'snake') {
-    return {
-      sku: form.code.trim(),
-      name: form.name.trim(),
-      stock: parseInteger(form.stock) ?? 0,
-      stock_min: parseInteger(form.stockMin) ?? 0,
-      stock_max: parseInteger(form.stockMax) ?? 0,
-      cost: toCents(buy),
-      price: toCents(sell),
-      profit_pct_bp: percentToBp(pct),
-      image_url: baseImageValue,
-      active: true
-    }
-  }
-
-  return {
-    sku: form.code.trim(),
-    name: form.name.trim(),
-    stock: parseInteger(form.stock) ?? 0,
-    stockMin: parseInteger(form.stockMin) ?? 0,
-    stockMax: parseInteger(form.stockMax) ?? 0,
-    cost: toCents(buy),
-    price: toCents(sell),
-    profitPctBp: percentToBp(pct),
-    imagePath: baseImageValue,
-    active: true
-  }
-}
-
 async function fetchSupabaseProductById(id: number): Promise<ProductDetails | null> {
   const result = await supabase
     .from('Product')
@@ -413,60 +373,6 @@ async function fetchSupabaseProductBySku(sku: string): Promise<ProductDetails | 
   return mapSupabaseRowToDetails(data)
 }
 
-async function createSupabaseProduct(form: FormState, imageFile: File | null): Promise<void> {
-  const imageDataUrl = imageFile ? await fileToDataUrl(imageFile) : null
-  const intent: ImageIntent = imageDataUrl ? 'replace' : 'remove'
-
-  const camelPayload = toSupabasePayload(form, imageDataUrl, intent, 'camel')
-  const { error } = await supabase.from('Product').insert(camelPayload)
-
-  if (error) throw new Error(error.message)
-}
-
-async function updateSupabaseProduct(
-  productId: number,
-  form: FormState,
-  imageFile: File | null,
-  imageIntent: ImageIntent
-): Promise<void> {
-  const imageDataUrl = imageIntent === 'replace' && imageFile ? await fileToDataUrl(imageFile) : null
-
-  const byId = await supabase
-    .from('Product')
-    .select('id, sku')
-    .eq('id', productId)
-    .maybeSingle()
-
-  const byIdData = (byId.data as { id: number | string; sku?: string | null } | null) ?? null
-  let targetId: number | string | null = byIdData?.id ?? null
-
-  if (!targetId) {
-    const bySku = await supabase
-      .from('Product')
-      .select('id, sku')
-      .eq('sku', form.code.trim())
-      .maybeSingle()
-
-    const bySkuData = (bySku.data as { id: number | string; sku?: string | null } | null) ?? null
-    targetId = bySkuData?.id ?? null
-  }
-
-  if (!targetId) {
-    await createSupabaseProduct(form, imageIntent === 'replace' ? imageFile : null)
-    return
-  }
-
-  const snakePayload = toSupabasePayload(form, imageDataUrl, imageIntent, 'snake')
-  const snakeResult = await supabase.from('Product').update(snakePayload).eq('id', targetId)
-  if (!snakeResult.error) return
-
-  const camelPayload = toSupabasePayload(form, imageDataUrl, imageIntent, 'camel')
-  const camelResult = await supabase.from('Product').update(camelPayload).eq('id', targetId)
-  if (!camelResult.error) return
-
-  throw new Error(camelResult.error.message || snakeResult.error.message)
-}
-
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message.trim()) return error.message
   return fallback
@@ -494,18 +400,6 @@ async function tryLocalGetBySku(sku: string): Promise<ProductDetails | null> {
   } catch {
     return null
   }
-}
-
-async function tryLocalUpdate(
-  id: number,
-  payload: Partial<CreateProductPayload>
-): Promise<boolean> {
-  const productsApi = getProductsBridge()
-  const update = productsApi?.update
-  if (typeof update !== 'function') return false
-
-  await update(id, payload)
-  return true
 }
 
 type ModalShellProps = {
@@ -1137,53 +1031,10 @@ export default function AddProductModal({
       const createPayload = await buildCreateProductPayload(form, imageFile)
       const updatePayload = await buildUpdateProductPayload(form, imageFile, imageIntent)
 
-      let localSucceeded = false
-      let supabaseSucceeded = false
-      let localError: string | null = null
-      let supabaseError: string | null = null
-
       if (!effectiveProductId) {
-        try {
-          await productRepository.create(createPayload)
-          localSucceeded = true
-        } catch (error) {
-          localError = toErrorMessage(error, 'No se pudo guardar en la BD local.')
-        }
-
-        try {
-          await createSupabaseProduct(form, imageFile)
-          supabaseSucceeded = true
-        } catch (error) {
-          supabaseError = toErrorMessage(error, 'No se pudo guardar en Supabase.')
-        }
+        await productRepository.create(createPayload)
       } else {
-        try {
-          localSucceeded = await tryLocalUpdate(effectiveProductId, updatePayload)
-        } catch (error) {
-          localError = toErrorMessage(error, 'No se pudo actualizar en la BD local.')
-        }
-
-        try {
-          await updateSupabaseProduct(effectiveProductId, form, imageFile, imageIntent)
-          supabaseSucceeded = true
-        } catch (error) {
-          supabaseError = toErrorMessage(error, 'No se pudo actualizar en Supabase.')
-        }
-      }
-
-      if (!localSucceeded && !supabaseSucceeded) {
-        throw new Error(
-          [localError, supabaseError].filter(Boolean).join(' ') ||
-            'No se pudo guardar el producto en ninguna fuente.'
-        )
-      }
-
-      if (localSucceeded && !supabaseSucceeded) {
-        console.warn('[AddProductModal] Guardado local correcto, pero falló Supabase:', supabaseError)
-      }
-
-      if (!localSucceeded && supabaseSucceeded) {
-        console.warn('[AddProductModal] Guardado en Supabase correcto, pero falló la BD local:', localError)
+        await productRepository.update(effectiveProductId, updatePayload)
       }
 
       closeAll()

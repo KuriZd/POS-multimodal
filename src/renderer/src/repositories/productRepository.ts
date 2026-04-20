@@ -40,9 +40,18 @@ type ProductsBridge = {
   list?: (args: ProductsListArgs) => Promise<ProductsListResult>
 }
 
+type SyncBridge = {
+  pullAll?: () => Promise<unknown>
+}
+
 function getProductsBridge(): ProductsBridge | null {
   const w = window as unknown as { pos?: { products?: ProductsBridge } }
   return w.pos?.products ?? null
+}
+
+function getSyncBridge(): SyncBridge | null {
+  const w = window as unknown as { pos?: { sync?: SyncBridge } }
+  return w.pos?.sync ?? null
 }
 
 function readNumber(value: unknown, fallback = 0): number {
@@ -183,34 +192,18 @@ async function listFromSupabase(args: ProductsListArgs): Promise<ProductsListRes
 
 export const productRepository = {
   async create(payload: CreateProductPayload): Promise<{ id: number }> {
-    const api = getProductsBridge()
-    const create = api?.create
-
-    if (typeof create === 'function') {
-      const localResult = await create(payload)
-      void createInSupabase(payload)
-      return localResult
-    }
-
     const remoteResult = await createInSupabase(payload)
     if (!remoteResult) {
-      throw new Error('No se pudo guardar el producto ni en local ni en Supabase.')
+      throw new Error('No se pudo guardar el producto en Supabase.')
     }
 
+    await getSyncBridge()?.pullAll?.().catch(() => undefined)
     return remoteResult
   },
 
   async update(id: number, payload: Partial<CreateProductPayload>): Promise<void> {
-    const api = getProductsBridge()
-    const update = api?.update
-
-    if (typeof update === 'function') {
-      await update(id, payload)
-      void updateInSupabase(id, payload)
-      return
-    }
-
     await updateInSupabase(id, payload)
+    await getSyncBridge()?.pullAll?.().catch(() => undefined)
   },
 
   async get(id: number): Promise<ProductDetails> {

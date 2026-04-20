@@ -51,6 +51,10 @@ type ServicesBridge = {
   list?: (args: ServicesListArgs) => Promise<ServicesListResult>
 }
 
+type SyncBridge = {
+  pullAll?: () => Promise<unknown>
+}
+
 type UnknownRow = Record<string, unknown>
 
 type SupabaseServiceRecord = {
@@ -68,11 +72,9 @@ function getServicesBridge(): ServicesBridge | null {
   return w.pos?.services ?? null
 }
 
-function requireFn<T>(fn: T, errorMessage: string): NonNullable<T> {
-  if (typeof fn !== 'function') {
-    throw new Error(errorMessage)
-  }
-  return fn as NonNullable<T>
+function getSyncBridge(): SyncBridge | null {
+  const w = window as unknown as { pos?: { sync?: SyncBridge } }
+  return w.pos?.sync ?? null
 }
 
 function asRow(value: unknown): UnknownRow | null {
@@ -170,19 +172,6 @@ function buildServiceDetails(
   }
 }
 
-function buildServiceRowSnake(payload: Partial<CreateServicePayload>): UnknownRow {
-  const row: UnknownRow = {}
-
-  if (typeof payload.code === 'string') row.code = payload.code.trim()
-  if (typeof payload.name === 'string') row.name = payload.name.trim()
-  if (typeof payload.durationMin === 'number') row.duration_min = payload.durationMin
-  if (typeof payload.cost === 'number') row.cost = payload.cost
-  if (typeof payload.price === 'number') row.price = payload.price
-  if (typeof payload.profitPctBp === 'number') row.profit_pct_bp = payload.profitPctBp
-
-  return row
-}
-
 function buildServiceRowCamel(payload: Partial<CreateServicePayload>, forInsert = false): UnknownRow {
   const row: UnknownRow = {}
 
@@ -195,14 +184,6 @@ function buildServiceRowCamel(payload: Partial<CreateServicePayload>, forInsert 
   if (forInsert) row.active = true
 
   return row
-}
-
-function buildSuppliesRowsSnake(serviceId: number, supplies: ServiceSupplyInput[]): UnknownRow[] {
-  return supplies.map((supply) => ({
-    service_id: serviceId,
-    product_id: supply.productId,
-    qty: supply.qty
-  }))
 }
 
 function buildSuppliesRowsCamel(serviceId: number, supplies: ServiceSupplyInput[]): UnknownRow[] {
@@ -435,68 +416,26 @@ async function listLocalServices(args: ServicesListArgs): Promise<ServicesListRe
 
 export const serviceRepository = {
   async create(payload: CreateServicePayload): Promise<{ id: number }> {
-    const api = getServicesBridge()
-    let localResult: { id: number } | null = null
-    let localError: unknown = null
-
-    try {
-      const create = requireFn(api?.create, 'No existe services.create en el bridge.')
-      localResult = await create(payload)
-    } catch (error) {
-      localError = error
-    }
-
     try {
       const supabaseId = await insertSupabaseService(payload)
-      if (localResult) return localResult
+      await getSyncBridge()?.pullAll?.().catch(() => undefined)
       return { id: supabaseId }
     } catch (error) {
       console.warn('No se pudo sincronizar el servicio en Supabase.', error)
-      if (localResult) return localResult
-      if (localError instanceof Error) throw localError
       if (error instanceof Error) throw error
       throw new Error('No se pudo crear el servicio.')
     }
   },
 
   async update(id: number, payload: Partial<CreateServicePayload>): Promise<void> {
-    const api = getServicesBridge()
-    let localError: unknown = null
-    let existingCode: string | null = null
-    let localUpdated = false
-    let supabaseUpdated = false
+    const existingCode = typeof payload.code === 'string' ? payload.code : null
 
     try {
-      if (typeof api?.get === 'function') {
-        const existing = await api.get(id)
-        existingCode = existing.code
-      }
-    } catch {
-      existingCode = typeof payload.code === 'string' ? payload.code : null
-    }
-
-    try {
-      const update = requireFn(api?.update, 'No existe services.update en el bridge.')
-      await update(id, payload)
-      localUpdated = true
-    } catch (error) {
-      localError = error
-    }
-
-    try {
-      await updateSupabaseServiceByLocator(id, payload, payload.code ?? existingCode)
-      supabaseUpdated = true
+      await updateSupabaseServiceByLocator(id, payload, existingCode)
+      await getSyncBridge()?.pullAll?.().catch(() => undefined)
     } catch (error) {
       console.warn('No se pudo sincronizar la actualización del servicio en Supabase.', error)
-      if (!localUpdated) {
-        if (localError instanceof Error) throw localError
-        if (error instanceof Error) throw error
-        throw new Error('No se pudo actualizar el servicio.')
-      }
-    }
-
-    if (!localUpdated && !supabaseUpdated) {
-      if (localError instanceof Error) throw localError
+      if (error instanceof Error) throw error
       throw new Error('No se pudo actualizar el servicio.')
     }
   },
