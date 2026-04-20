@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npm run *)",
       "Bash(npm start *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
