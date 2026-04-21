@@ -34,10 +34,7 @@ export function useSync() {
   }, [])
 
   useEffect(() => {
-    const timeSinceLastSync = lastSyncAt ? Date.now() - lastSyncAt.getTime() : Infinity
-    if (timeSinceLastSync >= SIX_HOURS_MS) {
-      void sync()
-    }
+    void sync()
 
     const interval = setInterval(() => void sync(), SIX_HOURS_MS)
     return () => clearInterval(interval)

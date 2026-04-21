@@ -5,7 +5,7 @@
     min-height: 100vh;
     display: grid;
     grid-template-columns: auto 1fr;
-    background: #ececec;
+    background: #f0f2f7;
 }
 
 .mainArea {
@@ -15,8 +15,9 @@
 }
 
 .content {
-    padding: 20px 24px 24px;
+    padding: 0;
     box-sizing: border-box;
+    flex: 1;
 }
 
 /* ✅ .placeholderCard, .placeholderTitle, .placeholderText eliminados — no los usa ningún componente */

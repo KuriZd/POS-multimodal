@@ -5,6 +5,7 @@ import inventoryIcon from '../../assets/inventory.png'
 import salesIcon from '../../assets/sales.png'
 import logoutIcon from '../../assets/logout.png'
 import homeIcon from '../../assets/home.png'
+import settingsIcon from '../../assets/engranaje.png'
 import type { AppSection, SidebarMenuItem } from './layout.types' // ✅ AuthUser importado
 
 type SidebarProps = {
@@ -31,6 +32,7 @@ export default function Sidebar({
         products: productsIcon,
         inventory: inventoryIcon,
         sales: salesIcon,
+        users: settingsIcon,
     }
 
     return (
