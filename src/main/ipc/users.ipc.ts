@@ -25,7 +25,7 @@ export function registerUsersIpc(): void {
         continue
       }
 
-      const rows = (data ?? []) as RemoteUserRow[]
+      const rows = (data ?? []) as unknown as RemoteUserRow[]
       console.info(`[users:list] ok con select "${select}". Filas: ${rows.length}`)
       return rows.map((row) => ({
         id: Number(row.id),
@@ -115,4 +115,14 @@ export function registerUsersIpc(): void {
       return { ok: true }
     }
   )
+
+  ipcMain.handle('users:delete', async (_event, id: number) => {
+    const { error } = await supabaseAdmin.from('User').delete().eq('id', id)
+    if (error) throw new Error(error.message)
+
+    const db = getLocalDb()
+    db.prepare(`DELETE FROM "User" WHERE id = @id`).run({ id })
+
+    return { ok: true }
+  })
 }
