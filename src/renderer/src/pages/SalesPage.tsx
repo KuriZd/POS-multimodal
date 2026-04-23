@@ -549,7 +549,14 @@ export default function SalesPage({ user }: { user: AuthUser }): ReactElement {
   const [notesOpen, setNotesOpen] = useState(false)
   const [charging, setCharging] = useState(false)
   const [historialOpen, setHistorialOpen] = useState(false)
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 3500)
+    return () => clearTimeout(t)
+  }, [toast])
 
   useEffect(() => {
     void loadCatalog().then((items) => {
@@ -664,10 +671,10 @@ export default function SalesPage({ user }: { user: AuthUser }): ReactElement {
         },
       })
       clearCart()
-      alert(`Venta ${result.folio} registrada por ${fmt(total)}`)
+      setToast({ type: 'success', message: `Venta ${result.folio} registrada por ${fmt(total)}` })
     } catch (err) {
       console.error('[SalesPage] Error al registrar venta:', err)
-      alert('No se pudo registrar la venta. Intenta de nuevo.')
+      setToast({ type: 'error', message: 'No se pudo registrar la venta. Intenta de nuevo.' })
     } finally {
       setCharging(false)
     }
@@ -678,6 +685,13 @@ export default function SalesPage({ user }: { user: AuthUser }): ReactElement {
   return (
     <div className={styles.page}>
       {historialOpen && <HistorialModal onClose={() => setHistorialOpen(false)} />}
+
+      {toast && (
+        <div className={`${styles.toast} ${toast.type === 'success' ? styles.toastSuccess : styles.toastError}`}>
+          {toast.message}
+          <button className={styles.toastClose} onClick={() => setToast(null)}>×</button>
+        </div>
+      )}
 
       <SalesHeader
         search={search}

@@ -256,6 +256,7 @@ export default function ProductsView(): JSX.Element {
 
   const [loadingProducts, setLoadingProducts] = useState(true)
   const [loadingServices, setLoadingServices] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const [productsData, setProductsData] = useState<ProductsListResult>({
     items: [],
@@ -312,6 +313,7 @@ export default function ProductsView(): JSX.Element {
 
   async function fetchProductsList(nextPage = page, nextPageSize = pageSize, nextSearch = search): Promise<void> {
     setLoadingProducts(true)
+    setLoadError(null)
 
     try {
       const localResult = await fetchProductsFromLocal(nextPage, nextPageSize, nextSearch)
@@ -329,13 +331,8 @@ export default function ProductsView(): JSX.Element {
         setProductsData(remoteResult)
       } catch (remoteError) {
         console.error('No se pudieron cargar los productos.', { localError, remoteError })
-        setProductsData({
-          items: [],
-          total: 0,
-          page: nextPage,
-          pageSize: nextPageSize,
-          source: 'local'
-        })
+        setLoadError('No se pudieron cargar los productos. Verifica tu conexión e intenta de nuevo.')
+        setProductsData({ items: [], total: 0, page: nextPage, pageSize: nextPageSize, source: 'local' })
       }
     } finally {
       setLoadingProducts(false)
@@ -344,6 +341,7 @@ export default function ProductsView(): JSX.Element {
 
   async function fetchServicesList(nextPage = page, nextPageSize = pageSize, nextSearch = search): Promise<void> {
     setLoadingServices(true)
+    setLoadError(null)
 
     try {
       const localResult = await serviceRepository.list({
@@ -355,13 +353,7 @@ export default function ProductsView(): JSX.Element {
       const items = localResult.items.map(normalizeServiceFromLocal)
 
       if (localResult.total > 0 || !supabase) {
-        setServicesData({
-          items,
-          total: localResult.total,
-          page: localResult.page,
-          pageSize: localResult.pageSize,
-          source: 'local'
-        })
+        setServicesData({ items, total: localResult.total, page: localResult.page, pageSize: localResult.pageSize, source: 'local' })
         return
       }
 
@@ -373,13 +365,8 @@ export default function ProductsView(): JSX.Element {
         setServicesData(remoteResult)
       } catch (remoteError) {
         console.error('No se pudieron cargar los servicios.', { localError, remoteError })
-        setServicesData({
-          items: [],
-          total: 0,
-          page: nextPage,
-          pageSize: nextPageSize,
-          source: 'local'
-        })
+        setLoadError('No se pudieron cargar los servicios. Verifica tu conexión e intenta de nuevo.')
+        setServicesData({ items: [], total: 0, page: nextPage, pageSize: nextPageSize, source: 'local' })
       }
     } finally {
       setLoadingServices(false)
@@ -650,6 +637,13 @@ export default function ProductsView(): JSX.Element {
             </select>
           </div>
         </div>
+
+        {loadError && (
+          <div className={styles.errorBanner}>
+            ⚠ {loadError}
+            <button className={styles.errorRetry} onClick={() => fetchCurrentList()}>Reintentar</button>
+          </div>
+        )}
 
         <div className={styles.tableWrap}>
           {mode === 'products' ? (

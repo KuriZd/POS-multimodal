@@ -1016,6 +1016,58 @@
   cursor: not-allowed;
 }
 
+/* ─── Toast ───────────────────────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  box-shadow: 0 6px 24px rgba(16, 24, 40, 0.16);
+  z-index: 2000;
+  animation: toastIn 0.22s ease;
+  max-width: 360px;
+}
+
+.toastSuccess {
+  background: #1a2e22;
+  color: #4ade80;
+  border: 1.5px solid #166534;
+}
+
+.toastError {
+  background: #2e1a1a;
+  color: #f87171;
+  border: 1.5px solid #991b1b;
+}
+
+.toastClose {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.toastClose:hover {
+  opacity: 1;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ─── Historial Modal ─────────────────────────────────────────────────────── */
 
 .modalOverlay {
