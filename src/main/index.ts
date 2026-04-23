@@ -5,7 +5,7 @@ import { registerProductsIpc } from './ipc/products.ipc'
 import { registerServicesIpc } from './ipc/services.ipc'
 import { registerSalesIpc } from './ipc/sales.ipc'
 import { registerSyncIpc } from './ipc/sync.ipc'
-import { registerAuthIpc } from './ipc/auth.ipc'
+import { registerAuthIpc, clearSession } from './ipc/auth.ipc'
 import { registerUsersIpc } from './ipc/users.ipc'
 import { registerInventoryIpc } from './ipc/inventory.ipc'
 import { registerDashboardIpc } from './ipc/dashboard.ipc'
@@ -47,4 +47,8 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
+})
+
+app.on('will-quit', () => {
+  clearSession()
 })

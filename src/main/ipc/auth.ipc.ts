@@ -71,7 +71,7 @@ function saveSession(user: AuthUser): void {
   }
 }
 
-function clearSession(): void {
+export function clearSession(): void {
   try {
     fs.unlinkSync(sessionFilePath())
   } catch {
