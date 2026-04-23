@@ -5,11 +5,11 @@ import {
 } from 'react-icons/fi'
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner'
 import styles from './DashboardPage.module.css'
+import { formatMXN } from '../lib/formatters'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const fmt = (n: number) =>
-  n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })
+const fmt = (n: number) => formatMXN(n, { decimals: 0 })
 
 function greeting(name: string): string {
   const h = new Date().getHours()

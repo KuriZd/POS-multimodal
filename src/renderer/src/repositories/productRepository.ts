@@ -95,7 +95,8 @@ function toSupabaseCreatePayload(payload: CreateProductPayload): Record<string, 
     price: payload.price,
     profitPctBp: payload.profitPctBp,
     imagePath: payload.imageDataUrl ?? null,
-    active: true
+    active: true,
+    categoryId: payload.categoryId ?? null
   }
 }
 
@@ -111,6 +112,7 @@ function toSupabaseUpdatePayload(payload: Partial<CreateProductPayload>): Record
   if (payload.price !== undefined) out.price = payload.price
   if (payload.profitPctBp !== undefined) out.profitPctBp = payload.profitPctBp
   if (payload.imageDataUrl !== undefined) out.imagePath = payload.imageDataUrl
+  if (payload.categoryId !== undefined) out.categoryId = payload.categoryId ?? null
 
   return out
 }

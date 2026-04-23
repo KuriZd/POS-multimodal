@@ -224,6 +224,112 @@
   opacity: 0.95;
 }
 
+/* Category selector row */
+.categoryRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.select {
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid #d7dbe6;
+  padding: 0 10px;
+  outline: none;
+  background: #ffffff;
+  box-shadow: 0 3px 10px rgba(16, 24, 40, 0.08);
+  width: 100%;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.select:focus {
+  border-color: #8fb2ff;
+  box-shadow: 0 0 0 4px rgba(143, 178, 255, 0.25);
+}
+
+.addCategoryBtn {
+  height: 34px;
+  width: 34px;
+  border-radius: 6px;
+  border: 1px solid #b8c7ff;
+  background: #eef2ff;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  color: #4f6ef7;
+  flex-shrink: 0;
+}
+
+.addCategoryBtn:hover {
+  background: #dde6ff;
+}
+
+/* Mini-modal for adding a category */
+.miniBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: grid;
+  place-items: center;
+  z-index: 1100;
+}
+
+.miniModal {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(16, 24, 40, 0.22);
+  border: 1px solid #e6e8ef;
+  width: min(360px, 90vw);
+  overflow: hidden;
+}
+
+.miniHeader {
+  background: #8fb2ff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  height: 44px;
+}
+
+.miniTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.miniBody {
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.miniFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 18px 18px;
+}
+
+.cancelBtn {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid #d7dbe6;
+  background: #f8fafc;
+  cursor: pointer;
+  font-weight: 600;
+  color: #374151;
+}
+
+.cancelBtn:hover {
+  background: #f1f5f9;
+}
+
 /* =======================
    BREAKPOINTS
 ======================= */

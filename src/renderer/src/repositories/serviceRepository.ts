@@ -187,10 +187,13 @@ function buildServiceRowCamel(payload: Partial<CreateServicePayload>, forInsert 
 }
 
 function buildSuppliesRowsCamel(serviceId: number, supplies: ServiceSupplyInput[]): UnknownRow[] {
+  const now = new Date().toISOString()
   return supplies.map((supply) => ({
     serviceId,
     productId: supply.productId,
-    qty: supply.qty
+    qty: supply.qty,
+    createdAt: now,
+    updatedAt: now
   }))
 }
 

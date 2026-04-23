@@ -4,6 +4,11 @@ export {}
 export type DataSource = 'local' | 'supabase'
 export type AppRole = 'ADMIN' | 'CASHIER' | 'SUPERVISOR'
 
+export type Category = {
+  id: number
+  name: string
+}
+
 export type CreateProductPayload = {
   sku: string
   name: string
@@ -15,6 +20,7 @@ export type CreateProductPayload = {
   stockMin: number
   stockMax: number
   imageDataUrl: string | null
+  categoryId?: number | null
 }
 
 export type ProductDetails = {

@@ -9,7 +9,7 @@ import {
   type RefObject
 } from 'react'
 import { createPortal } from 'react-dom'
-import { FiX, FiSave, FiImage, FiHelpCircle } from 'react-icons/fi'
+import { FiX, FiSave, FiImage, FiHelpCircle, FiPlus, FiCheck } from 'react-icons/fi'
 import { MdOutlineQrCode2 } from 'react-icons/md'
 import { CiBarcode } from 'react-icons/ci'
 import { QRCodeSVG } from 'qrcode.react'
@@ -17,6 +17,28 @@ import styles from './AddProductModal.module.css'
 import { productRepository, type CreateProductPayload } from '../../repositories/productRepository'
 import { supabase } from '../../lib/supabaseClient'
 import { bpToPctString, formatNumber, percentToBp } from '../../lib/formatters'
+
+type Category = { id: number; name: string }
+
+async function fetchCategoriesFromSupabase(): Promise<Category[]> {
+  const { data, error } = await supabase
+    .from('Category')
+    .select('id, name')
+    .is('deletedAt', null)
+    .order('name', { ascending: true })
+  if (error) return []
+  return (data ?? []) as Category[]
+}
+
+async function createCategoryInSupabase(name: string): Promise<Category | null> {
+  const { data, error } = await supabase
+    .from('Category')
+    .insert({ name: name.trim(), publicId: crypto.randomUUID() })
+    .select('id, name')
+    .single()
+  if (error) return null
+  return data as Category
+}
 
 type Props = {
   open: boolean
@@ -34,6 +56,7 @@ type FormState = {
   sellPrice: string
   stock: string
   profitPct: string
+  categoryId: number | null
 }
 
 const initialState: FormState = {
@@ -44,7 +67,8 @@ const initialState: FormState = {
   buyPrice: '',
   sellPrice: '',
   stock: '',
-  profitPct: ''
+  profitPct: '',
+  categoryId: null
 }
 
 type PriceEditMode = 'sell' | 'pct' | null
@@ -203,7 +227,8 @@ async function buildCreateProductPayload(
     cost: toCents(buy),
     price: toCents(sell),
     profitPctBp: percentToBp(pct),
-    imageDataUrl: null
+    imageDataUrl: null,
+    categoryId: form.categoryId ?? null
   }
 
   if (imageFile) payload.imageDataUrl = await fileToDataUrl(imageFile)
@@ -227,7 +252,8 @@ async function buildUpdateProductPayload(
     stockMax: parseInteger(form.stockMax) ?? 0,
     cost: toCents(buy),
     price: toCents(sell),
-    profitPctBp: percentToBp(pct)
+    profitPctBp: percentToBp(pct),
+    categoryId: form.categoryId ?? null
   }
 
   if (imageIntent === 'remove') {
@@ -467,6 +493,14 @@ type ProductFormProps = {
   onSellPriceChange: (value: string) => void
   onProfitPctChange: (value: string) => void
   onStockChange: (value: string) => void
+  categories: Category[]
+  addingCategory: boolean
+  newCategoryName: string
+  savingCategory: boolean
+  onOpenAddCategory: () => void
+  onCancelAddCategory: () => void
+  onNewCategoryNameChange: (v: string) => void
+  onSaveNewCategory: () => void
 }
 
 function ProductForm({
@@ -478,7 +512,15 @@ function ProductForm({
   onBuyPriceChange,
   onSellPriceChange,
   onProfitPctChange,
-  onStockChange
+  onStockChange,
+  categories,
+  addingCategory,
+  newCategoryName,
+  savingCategory,
+  onOpenAddCategory,
+  onCancelAddCategory,
+  onNewCategoryNameChange,
+  onSaveNewCategory
 }: ProductFormProps): JSX.Element {
   return (
     <div className={styles.form}>
@@ -595,8 +637,67 @@ function ProductForm({
           />
         </div>
 
-        <div />
-        <div />
+        <div className={styles.field} style={{ gridColumn: 'span 2' }}>
+          <label className={styles.label}>Categoría</label>
+          <div className={styles.categoryRow}>
+            <select
+              className={styles.select}
+              value={form.categoryId ?? ''}
+              onChange={(e) =>
+                setField('categoryId', e.target.value === '' ? null : Number(e.target.value))
+              }
+            >
+              <option value="">— Sin categoría —</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <button
+              className={styles.addCategoryBtn}
+              type="button"
+              title="Nueva categoría"
+              onClick={onOpenAddCategory}
+            >
+              <FiPlus />
+            </button>
+          </div>
+
+          {addingCategory && (
+            <div className={styles.categoryRow} style={{ marginTop: 6 }}>
+              <input
+                className={styles.input}
+                placeholder="Nombre de la categoría"
+                value={newCategoryName}
+                onChange={(e) => onNewCategoryNameChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') onSaveNewCategory()
+                  if (e.key === 'Escape') onCancelAddCategory()
+                }}
+                autoFocus
+              />
+              <button
+                className={styles.addCategoryBtn}
+                type="button"
+                title="Confirmar"
+                disabled={savingCategory || !newCategoryName.trim()}
+                onClick={onSaveNewCategory}
+              >
+                <FiCheck />
+              </button>
+              <button
+                className={styles.cancelBtn}
+                type="button"
+                title="Cancelar"
+                onClick={onCancelAddCategory}
+                style={{ height: 34, padding: '0 10px', fontSize: 12 }}
+              >
+                <FiX />
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className={styles.field}>
           <label className={styles.label}>Porcentaje de ganancia</label>
@@ -699,6 +800,10 @@ export default function AddProductModal({
   const [loadedFrom, setLoadedFrom] = useState<DataSource | null>(null)
   const [syncNotice, setSyncNotice] = useState<string | null>(null)
   const [qrDownloadValue, setQrDownloadValue] = useState('')
+  const [categories, setCategories] = useState<Category[]>([])
+  const [addingCategory, setAddingCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [savingCategory, setSavingCategory] = useState(false)
 
   const qrRenderRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -725,6 +830,25 @@ export default function AddProductModal({
   }, [onClose])
 
   useEscapeToClose(open, closeAll)
+
+  useEffect(() => {
+    if (!open) return
+    void fetchCategoriesFromSupabase().then(setCategories)
+  }, [open])
+
+  async function handleSaveNewCategory(): Promise<void> {
+    const name = newCategoryName.trim()
+    if (!name) return
+    setSavingCategory(true)
+    const created = await createCategoryInSupabase(name)
+    if (created) {
+      setCategories((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name, 'es')))
+      setField('categoryId', created.id)
+    }
+    setNewCategoryName('')
+    setAddingCategory(false)
+    setSavingCategory(false)
+  }
 
   useEffect(() => {
     if (!open) return
@@ -767,7 +891,8 @@ export default function AddProductModal({
           buyPrice: fromCentsToInput(product.cost ?? 0),
           sellPrice: fromCentsToInput(product.price ?? 0),
           stock: String(product.stock ?? 0),
-          profitPct: bpToPctInput(product.profitPctBp ?? 0)
+          profitPct: bpToPctInput(product.profitPctBp ?? 0),
+          categoryId: null
         })
 
         const existingImage = toRenderableImageUrl(product.imageUrl ?? product.imagePath ?? null)
@@ -1067,6 +1192,14 @@ export default function AddProductModal({
                 onSellPriceChange={handleSellPriceChange}
                 onProfitPctChange={handleProfitPctChange}
                 onStockChange={handleStockChange}
+                categories={categories}
+                addingCategory={addingCategory}
+                newCategoryName={newCategoryName}
+                savingCategory={savingCategory}
+                onOpenAddCategory={() => setAddingCategory(true)}
+                onCancelAddCategory={() => { setAddingCategory(false); setNewCategoryName('') }}
+                onNewCategoryNameChange={setNewCategoryName}
+                onSaveNewCategory={() => void handleSaveNewCategory()}
               />
 
               <ImagePanel

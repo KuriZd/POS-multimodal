@@ -10,6 +10,7 @@ import AddServiceModal from '../components/services/AddServicesModal'
 import { serviceRepository, type ServiceDetails } from '../repositories/serviceRepository'
 import FiltersDropdown, { type FilterKey, type FilterOption } from '../components/FiltersDropdown/FiltersDropdown'
 import { supabase } from '../lib/supabaseClient'
+import { formatMXN } from '../lib/formatters'
 
 type DataSource = 'local' | 'supabase'
 
@@ -502,11 +503,6 @@ export default function ProductsView(): JSX.Element {
     void fetchServicesList(page, pageSize, search)
   }
 
-  function formatMoneyFromCents(cents: number): string {
-    const value = (cents ?? 0) / 100
-    return value.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
-  }
-
   function closeAddMenu(): void {
     setAddMenuOpen(false)
   }
@@ -700,7 +696,7 @@ export default function ProductsView(): JSX.Element {
                 <div>{(productsData.page - 1) * productsData.pageSize + idx + 1}</div>
                 <div>{p.name}</div>
                 <div className={styles.muted}>{p.stock ?? 'N/A'}</div>
-                <div>{formatMoneyFromCents(p.price)}</div>
+                <div>{formatMXN(p.price)}</div>
                 <div className={styles.muted}>{p.barcode ?? p.sku}</div>
 
                 <div className={styles.actionsCell}>
@@ -732,7 +728,7 @@ export default function ProductsView(): JSX.Element {
                 <div>{(servicesData.page - 1) * servicesData.pageSize + idx + 1}</div>
                 <div>{s.name}</div>
                 <div className={styles.muted}>{s.durationMin ? `${s.durationMin} min` : 'N/A'}</div>
-                <div>{formatMoneyFromCents(s.price)}</div>
+                <div>{formatMXN(s.price)}</div>
                 <div className={styles.muted}>{s.code}</div>
 
                 <div className={styles.actionsCell}>

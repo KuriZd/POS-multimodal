@@ -39,7 +39,6 @@ type RecentSale = {
   createdAt: string
   total: number
   subtotal: number
-  tax: number
   status: string
   cashierName: string
   itemCount: number
@@ -125,9 +124,9 @@ interface Window {
           discount: number
           lineTotal: number
         }>
-        subtotal: number
-        tax: number
-        total: number
+        discount?: number
+        subtotal?: number
+        total?: number
         payment: { method: string; amount: number }
       }) => Promise<{ ok: true; folio: string; salePublicId: string }>
     }

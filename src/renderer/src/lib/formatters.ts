@@ -27,3 +27,19 @@ export function bpToPctString(bp: number): string {
 export function formatNumber(n: number, decimals = 2): string {
   return n.toFixed(decimals).replace(/\.?0+$/, '')
 }
+
+/**
+ * Format an integer centavos value as Mexican pesos currency.
+ * All monetary DB fields are stored as INTEGER centavos (e.g. 1500 = $15.00).
+ * @param cents  Value in centavos.
+ * @param opts.decimals  Decimal places shown (default 2). Pass 0 for KPI cards.
+ */
+export function formatMXN(cents: number, opts?: { decimals?: number }): string {
+  const d = opts?.decimals ?? 2
+  return ((cents ?? 0) / 100).toLocaleString('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+    minimumFractionDigits: d,
+    maximumFractionDigits: d,
+  })
+}

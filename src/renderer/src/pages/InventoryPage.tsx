@@ -7,6 +7,7 @@ import {
   FiRefreshCw, FiChevronDown, FiSave
 } from 'react-icons/fi'
 import styles from './InventoryPage.module.css'
+import { formatMXN } from '../lib/formatters'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -17,14 +18,13 @@ type StockStatus = 'ok' | 'low' | 'out'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function fmt(centavos: number): string {
-  return `$${(centavos / 100).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
+const fmt = (centavos: number) => formatMXN(centavos)
 
-function fmtShort(val: number): string {
-  if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`
-  if (val >= 1_000)     return `$${(val / 1_000).toFixed(1)}k`
-  return `$${val.toFixed(0)}`
+function fmtShort(centavos: number): string {
+  const pesos = centavos / 100
+  if (pesos >= 1_000_000) return `$${(pesos / 1_000_000).toFixed(1)}M`
+  if (pesos >= 1_000)     return `$${(pesos / 1_000).toFixed(1)}k`
+  return `$${pesos.toFixed(0)}`
 }
 
 function margin(cost: number, price: number): number {
