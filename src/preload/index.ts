@@ -37,6 +37,7 @@ contextBridge.exposeInMainWorld('pos', {
   sales: {
     create:  (payload: unknown) => ipcRenderer.invoke('sales:create', payload),
     recent:  (limit?: number)   => ipcRenderer.invoke('sales:recent', limit),
+    corte:   (cashierId: number) => ipcRenderer.invoke('sales:corte', cashierId),
   },
   sync: {
     pullProducts: () => ipcRenderer.invoke('sync:pullProducts'),

@@ -1190,6 +1190,171 @@
   white-space: nowrap;
 }
 
+/* ─── Corte de Caja Modal ─────────────────────────────────────────────────── */
+
+.corteBox {
+  max-width: 500px;
+}
+
+.corteBody {
+  overflow-y: auto;
+  flex: 1;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.corteMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding: 10px 14px;
+  background: #f8f9fd;
+  border-radius: 10px;
+  border: 1px solid #eaedfa;
+}
+
+.corteMetaItem {
+  font-size: 12.5px;
+  color: #6a7190;
+}
+
+.corteMetaItem strong {
+  color: #374263;
+}
+
+.corteKpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.corteKpi {
+  background: #f4f6fb;
+  border: 1.5px solid #eaedfa;
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.corteKpiLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8890a4;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.corteKpiValue {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1a1f36;
+}
+
+.corteSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.corteSectionTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #8890a4;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.corteMethodList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1.5px solid #eaedfa;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.corteMethodRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #fafbff;
+  font-size: 13px;
+  border-bottom: 1px solid #f0f2f8;
+}
+
+.corteMethodRow:last-child {
+  border-bottom: none;
+}
+
+.corteMethodLabel {
+  color: #374263;
+  font-weight: 500;
+}
+
+.corteMethodAmt {
+  font-weight: 700;
+  color: #1a1f36;
+}
+
+.corteArqueo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: #fafbff;
+  border: 1.5px solid #eaedfa;
+  border-radius: 10px;
+}
+
+.corteArqueoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: #374263;
+  font-weight: 500;
+}
+
+.corteArqueoAmt {
+  font-weight: 700;
+  color: #1a1f36;
+}
+
+.corteFooter {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 24px;
+  border-top: 1.5px solid #f0f2f8;
+  flex-shrink: 0;
+}
+
+.corteCloseBtn {
+  padding: 9px 24px;
+  border-radius: 8px;
+  border: 1.5px solid #d7dbe6;
+  background: #f4f6fb;
+  font-size: 13px;
+  font-weight: 700;
+  color: #374263;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.corteCloseBtn:hover {
+  background: #eef2ff;
+  border-color: #5b79ff;
+  color: #5b79ff;
+}
+
+/* ─── Hist ───────────────────────────────────────────────────────────────── */
+
 .histFolio {
   font-weight: 700;
   color: #5b79ff;

@@ -129,6 +129,12 @@ interface Window {
         total?: number
         payment: { method: string; amount: number }
       }) => Promise<{ ok: true; folio: string; salePublicId: string }>
+      corte: (cashierId: number) => Promise<{
+        totalVentas: number
+        tickets: number
+        byMethod: Record<string, number>
+        generatedAt: string
+      }>
     }
     sync: {
       pullProducts: () => Promise<{ ok: boolean; count: number }>

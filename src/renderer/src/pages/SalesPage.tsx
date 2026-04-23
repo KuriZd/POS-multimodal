@@ -534,6 +534,152 @@ function HistorialModal({ onClose }: HistorialModalProps): ReactElement {
   )
 }
 
+// ─── Corte de Caja Modal ─────────────────────────────────────────────────────
+
+type CorteData = {
+  totalVentas: number
+  tickets: number
+  byMethod: Record<string, number>
+  generatedAt: string
+}
+
+type CorteModalProps = {
+  cashierId: number
+  cashierName: string
+  onClose: () => void
+}
+
+function CorteModal({ cashierId, cashierName, onClose }: CorteModalProps): ReactElement {
+  const [data, setData] = useState<CorteData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [counted, setCounted] = useState('')
+
+  useEffect(() => {
+    void window.pos.sales.corte(cashierId)
+      .then(d => { setData(d); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [cashierId])
+
+  const expectedCash = data?.byMethod['efectivo'] ?? 0
+  const countedCents = Math.round((parseFloat(counted) || 0) * 100)
+  const diff = countedCents - expectedCash
+  const hasCounted = counted.trim() !== ''
+
+  const now = new Date()
+  const dateLabel = now.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const timeLabel = now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={`${styles.modalBox} ${styles.corteBox}`} onClick={e => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <div className={styles.modalTitle}>
+            <FiScissors size={18} />
+            Corte de Caja
+          </div>
+          <button className={styles.modalClose} onClick={onClose} aria-label="Cerrar">
+            <FiX size={18} />
+          </button>
+        </div>
+
+        <div className={styles.corteBody}>
+          {loading ? (
+            <div className={styles.modalLoading}>
+              <FiRefreshCw size={22} style={{ animation: 'spin 1s linear infinite' }} />
+              <span>Calculando…</span>
+            </div>
+          ) : !data ? (
+            <div className={styles.modalEmpty}>No se pudo cargar el corte.</div>
+          ) : (
+            <>
+              {/* Info del turno */}
+              <div className={styles.corteMeta}>
+                <span className={styles.corteMetaItem}><strong>Cajero:</strong> {cashierName}</span>
+                <span className={styles.corteMetaItem}><strong>Fecha:</strong> {dateLabel}</span>
+                <span className={styles.corteMetaItem}><strong>Hora:</strong> {timeLabel}</span>
+              </div>
+
+              {/* KPIs */}
+              <div className={styles.corteKpis}>
+                <div className={styles.corteKpi}>
+                  <span className={styles.corteKpiLabel}>Ventas del día</span>
+                  <span className={styles.corteKpiValue}>{fmt(data.totalVentas)}</span>
+                </div>
+                <div className={styles.corteKpi}>
+                  <span className={styles.corteKpiLabel}>Tickets</span>
+                  <span className={styles.corteKpiValue}>{data.tickets}</span>
+                </div>
+                <div className={styles.corteKpi}>
+                  <span className={styles.corteKpiLabel}>Ticket promedio</span>
+                  <span className={styles.corteKpiValue}>
+                    {data.tickets > 0 ? fmt(Math.round(data.totalVentas / data.tickets)) : '—'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Desglose por método */}
+              <div className={styles.corteSection}>
+                <h4 className={styles.corteSectionTitle}>Desglose por método de pago</h4>
+                <div className={styles.corteMethodList}>
+                  {Object.entries(METHOD_LABEL).map(([key, label]) => (
+                    <div key={key} className={styles.corteMethodRow}>
+                      <span className={styles.corteMethodLabel}>{label}</span>
+                      <span className={styles.corteMethodAmt}>{fmt(data.byMethod[key] ?? 0)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Arqueo de efectivo */}
+              <div className={styles.corteSection}>
+                <h4 className={styles.corteSectionTitle}>Arqueo de efectivo</h4>
+                <div className={styles.corteArqueo}>
+                  <div className={styles.corteArqueoRow}>
+                    <span>Efectivo esperado en caja</span>
+                    <span className={styles.corteArqueoAmt}>{fmt(expectedCash)}</span>
+                  </div>
+                  <div className={styles.corteArqueoRow}>
+                    <label htmlFor="counted">Efectivo contado</label>
+                    <div className={styles.cashInputWrap} style={{ width: 140 }}>
+                      <span className={styles.cashPrefix}>$</span>
+                      <input
+                        id="counted"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className={styles.cashInput}
+                        placeholder="0.00"
+                        value={counted}
+                        onChange={e => setCounted(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+
+                  {hasCounted && (
+                    <div className={`${styles.changeRow} ${diff >= 0 ? styles.changePos : styles.changeNeg}`}>
+                      <span>{diff >= 0 ? 'Sobrante' : 'Faltante'}</span>
+                      <span className={styles.changeAmount}>{fmt(Math.abs(diff))}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {!loading && data && (
+          <div className={styles.corteFooter}>
+            <button className={styles.corteCloseBtn} onClick={onClose}>
+              Cerrar
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function SalesPage({ user }: { user: AuthUser }): ReactElement {
@@ -549,6 +695,7 @@ export default function SalesPage({ user }: { user: AuthUser }): ReactElement {
   const [notesOpen, setNotesOpen] = useState(false)
   const [charging, setCharging] = useState(false)
   const [historialOpen, setHistorialOpen] = useState(false)
+  const [corteOpen, setCorteOpen] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
 
@@ -685,6 +832,13 @@ export default function SalesPage({ user }: { user: AuthUser }): ReactElement {
   return (
     <div className={styles.page}>
       {historialOpen && <HistorialModal onClose={() => setHistorialOpen(false)} />}
+      {corteOpen && (
+        <CorteModal
+          cashierId={user.id}
+          cashierName={user.name}
+          onClose={() => setCorteOpen(false)}
+        />
+      )}
 
       {toast && (
         <div className={`${styles.toast} ${toast.type === 'success' ? styles.toastSuccess : styles.toastError}`}>
@@ -700,7 +854,7 @@ export default function SalesPage({ user }: { user: AuthUser }): ReactElement {
         searchRef={searchRef}
         cashierName={user.name}
         onHistorial={() => setHistorialOpen(true)}
-        onCorte={() => { /* TODO: corte de caja */ }}
+        onCorte={() => setCorteOpen(true)}
       />
 
       <div className={styles.body}>

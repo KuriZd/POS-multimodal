@@ -320,6 +320,42 @@ export function registerSalesIpc(): void {
     return { ok: true as const, folio, salePublicId }
   })
 
+  ipcMain.handle('sales:corte', (_event, cashierId: number) => {
+    const db = getLocalDb()
+
+    type TotalsRow = { totalVentas: number | null; tickets: number }
+    const totals = db.prepare(`
+      SELECT SUM(total) AS totalVentas, COUNT(*) AS tickets
+      FROM "Sale"
+      WHERE status = 'COMPLETED'
+        AND DATE("createdAt") = DATE('now', 'localtime')
+        AND "cashierId" = ?
+    `).get(cashierId) as TotalsRow
+
+    type MethodRow = { method: string | null; metodTotal: number | null }
+    const rows = db.prepare(`
+      SELECT p.method, SUM(p.amount) AS metodTotal
+      FROM "Sale" s
+      JOIN "Payment" p ON p."salePublicId" = s."publicId"
+      WHERE s.status = 'COMPLETED'
+        AND DATE(s."createdAt") = DATE('now', 'localtime')
+        AND s."cashierId" = ?
+      GROUP BY p.method
+    `).all(cashierId) as MethodRow[]
+
+    const byMethod: Record<string, number> = {}
+    for (const row of rows) {
+      if (row.method) byMethod[row.method] = row.metodTotal ?? 0
+    }
+
+    return {
+      totalVentas: totals.totalVentas ?? 0,
+      tickets:     totals.tickets     ?? 0,
+      byMethod,
+      generatedAt: new Date().toISOString(),
+    }
+  })
+
   ipcMain.handle('sales:recent', (_event, limit = 30) => {
     const db = getLocalDb()
     type Row = {
