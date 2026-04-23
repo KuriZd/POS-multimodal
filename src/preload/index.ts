@@ -1,7 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
-console.log('PRELOAD CARGADO')
-
 contextBridge.exposeInMainWorld('pos', {
   auth: {
     login: (username: string, password: string) =>

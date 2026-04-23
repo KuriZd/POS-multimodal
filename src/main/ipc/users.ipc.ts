@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { createHash, randomUUID } from 'node:crypto'
 import { getLocalDb } from '../db/local-db'
 import { supabaseAdmin } from '../supabase/client'
+import { getCurrentUser } from './auth.ipc'
 
 type AppRole = 'ADMIN' | 'CASHIER' | 'SUPERVISOR'
 
@@ -10,6 +11,13 @@ type RemoteUserRow = Record<string, unknown>
 
 function sha256Hex(value: string): string {
   return createHash('sha256').update(value, 'utf8').digest('hex')
+}
+
+function requireAdmin(): void {
+  const user = getCurrentUser()
+  if (!user || user.role !== 'ADMIN') {
+    throw new Error('No autorizado: se requiere rol ADMIN.')
+  }
 }
 
 export function registerUsersIpc(): void {
@@ -52,6 +60,7 @@ export function registerUsersIpc(): void {
       _event,
       payload: { username: string; name: string; role: AppRole; password: string; active: boolean }
     ) => {
+      requireAdmin()
       const now = new Date().toISOString()
       const normalizedUsername = payload.username.trim().toLowerCase()
       const normalizedName = payload.name.trim()
@@ -104,6 +113,7 @@ export function registerUsersIpc(): void {
       id: number,
       payload: { username?: string; name?: string; role?: AppRole; active?: boolean; password?: string }
     ) => {
+      requireAdmin()
       const remotePayload: Record<string, unknown> = {}
       if (payload.username !== undefined) remotePayload.username = payload.username.trim().toLowerCase()
       if (payload.name !== undefined) remotePayload.name = payload.name.trim()
@@ -139,6 +149,7 @@ export function registerUsersIpc(): void {
   )
 
   ipcMain.handle('users:delete', async (_event, id: number) => {
+    requireAdmin()
     const { error } = await supabaseAdmin.from('User').delete().eq('id', id)
     if (error) throw new Error(error.message)
 

@@ -28,6 +28,10 @@ type LocalUserRow = {
 
 let currentUser: AuthUser | null = null
 
+export function getCurrentUser(): AuthUser | null {
+  return currentUser
+}
+
 type RemoteAuthRow = {
   id: number
   name: string
