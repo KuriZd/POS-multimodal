@@ -28,6 +28,16 @@ export function getLocalDb(): Database.Database {
 }
 
 function applyPreSchemaMigrations(db: Database.Database): void {
+  // Remove legacy Sale.tax column for existing databases.
+  try {
+    const saleCols = db.prepare(`PRAGMA table_info("Sale")`).all() as { name: string }[]
+    const hasTax = saleCols.some(c => c.name === 'tax')
+    if (hasTax) {
+      db.exec(`ALTER TABLE "Sale" DROP COLUMN tax`)
+    }
+  } catch (e) {
+    console.warn('[migration] Sale tax drop failed silently:', e)
+  }
   // Rename SaleItem.price → unitPrice for existing databases
   try {
     const cols = db.prepare(`PRAGMA table_info("SaleItem")`).all() as { name: string }[]
@@ -67,6 +77,20 @@ function applyPostSchemaMigrations(db: Database.Database): void {
       UPDATE "InventoryMovement" SET "sourceType" = 'ADJUSTMENT' WHERE "sourceType" = 'ajuste';
       UPDATE "InventoryMovement" SET "sourceType" = 'MANUAL'     WHERE "sourceType" = 'merma';
       UPDATE "InventoryMovement" SET "sourceType" = 'RETURN'     WHERE "sourceType" = 'devolucion';
+      UPDATE "InventoryMovement" SET type = "sourceType" WHERE type IS NULL AND "sourceType" IS NOT NULL;
+      UPDATE "InventoryMovement" SET reason = note WHERE reason IS NULL AND note IS NOT NULL;
+      UPDATE "InventoryMovement" SET "updatedAt" = "createdAt" WHERE "updatedAt" IS NULL;
+      UPDATE "InventoryMovement" SET "publicId" = lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' ||
+        substr(lower(hex(randomblob(2))), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) ||
+        substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6)))
+      WHERE "publicId" IS NULL;
+    `)
+  } catch { /* no-op */ }
+
+  try {
+    db.exec(`
+      UPDATE "ServiceSupply" SET "createdAt" = CURRENT_TIMESTAMP WHERE "createdAt" IS NULL;
+      UPDATE "ServiceSupply" SET "updatedAt" = COALESCE("updatedAt", "createdAt", CURRENT_TIMESTAMP);
     `)
   } catch { /* no-op */ }
 

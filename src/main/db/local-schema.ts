@@ -51,7 +51,6 @@ CREATE TABLE IF NOT EXISTS "Sale" (
   folio TEXT NOT NULL UNIQUE,
   status TEXT NOT NULL,
   subtotal INTEGER NOT NULL,
-  tax INTEGER NOT NULL,
   total INTEGER NOT NULL,
   "cashierId" INTEGER NOT NULL,
   "originDeviceId" TEXT,
@@ -128,6 +127,8 @@ CREATE TABLE IF NOT EXISTS "ServiceSupply" (
   "serviceId" INTEGER NOT NULL,
   "productId" INTEGER NOT NULL,
   qty INTEGER NOT NULL DEFAULT 1,
+  "createdAt" TEXT,
+  "updatedAt" TEXT,
   UNIQUE("serviceId", "productId"),
   FOREIGN KEY("serviceId") REFERENCES "Service"(id) ON DELETE CASCADE,
   FOREIGN KEY("productId") REFERENCES "Product"(id)
@@ -158,10 +159,14 @@ CREATE TABLE IF NOT EXISTS device_config (
 --   ADJUSTMENT | RETURN | OPENING_STOCK | MANUAL
 CREATE TABLE IF NOT EXISTS "InventoryMovement" (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  "publicId" TEXT UNIQUE,
+  type TEXT,
   "productId" INTEGER,
   "originalProductId" INTEGER,
   "sourceType" TEXT NOT NULL DEFAULT 'MANUAL',
+  "sourceId" INTEGER,
   qty INTEGER NOT NULL,
+  reason TEXT,
   "stockBefore" INTEGER,
   "stockAfter" INTEGER,
   "userId" INTEGER,
@@ -169,12 +174,17 @@ CREATE TABLE IF NOT EXISTS "InventoryMovement" (
   "saleId" INTEGER,
   "saleItemId" INTEGER,
   "relatedServiceId" INTEGER,
+  "relatedServiceOriginalId" INTEGER,
   "productPublicIdSnapshot" TEXT,
   "productCodeSnapshot" TEXT,
   "productNameSnapshot" TEXT,
+  "relatedServiceNameSnapshot" TEXT,
   "unitCostSnapshot" INTEGER,
   "metaJson" TEXT NOT NULL DEFAULT '{}',
+  "originDeviceId" TEXT,
+  "syncedAt" TEXT,
   "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TEXT,
   FOREIGN KEY("productId")   REFERENCES "Product"(id) ON UPDATE CASCADE ON DELETE SET NULL,
   FOREIGN KEY("userId")      REFERENCES "User"(id),
   FOREIGN KEY("saleId")      REFERENCES "Sale"(id) ON UPDATE CASCADE ON DELETE SET NULL,
@@ -215,14 +225,25 @@ ALTER TABLE "SaleItem" ADD COLUMN "unitProfitPctBpSnapshot" INTEGER;
 ALTER TABLE "SaleItem" ADD COLUMN "inventoryTracked" INTEGER NOT NULL DEFAULT 0;
 
 ALTER TABLE "InventoryMovement" ADD COLUMN "originalProductId" INTEGER;
+ALTER TABLE "InventoryMovement" ADD COLUMN "publicId" TEXT;
+ALTER TABLE "InventoryMovement" ADD COLUMN type TEXT;
 ALTER TABLE "InventoryMovement" ADD COLUMN "saleId" INTEGER;
 ALTER TABLE "InventoryMovement" ADD COLUMN "saleItemId" INTEGER;
+ALTER TABLE "InventoryMovement" ADD COLUMN "sourceId" INTEGER;
 ALTER TABLE "InventoryMovement" ADD COLUMN "relatedServiceId" INTEGER;
+ALTER TABLE "InventoryMovement" ADD COLUMN "relatedServiceOriginalId" INTEGER;
+ALTER TABLE "InventoryMovement" ADD COLUMN reason TEXT;
 ALTER TABLE "InventoryMovement" ADD COLUMN "productPublicIdSnapshot" TEXT;
 ALTER TABLE "InventoryMovement" ADD COLUMN "productCodeSnapshot" TEXT;
 ALTER TABLE "InventoryMovement" ADD COLUMN "productNameSnapshot" TEXT;
+ALTER TABLE "InventoryMovement" ADD COLUMN "relatedServiceNameSnapshot" TEXT;
 ALTER TABLE "InventoryMovement" ADD COLUMN "unitCostSnapshot" INTEGER;
 ALTER TABLE "InventoryMovement" ADD COLUMN "metaJson" TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE "InventoryMovement" ADD COLUMN "originDeviceId" TEXT;
+ALTER TABLE "InventoryMovement" ADD COLUMN "syncedAt" TEXT;
+ALTER TABLE "InventoryMovement" ADD COLUMN "updatedAt" TEXT;
 
 ALTER TABLE "Service" ADD COLUMN "taxRateBp" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "ServiceSupply" ADD COLUMN "createdAt" TEXT;
+ALTER TABLE "ServiceSupply" ADD COLUMN "updatedAt" TEXT;
 `
