@@ -1,5 +1,7 @@
 import { ipcMain } from 'electron'
+import crypto from 'node:crypto'
 import { getLocalDb } from '../db/local-db'
+import { pushMovementToSupabase } from './sync.ipc'
 
 type Period   = 'today' | 'week' | 'month'
 type UiMoveType = 'entrada' | 'venta' | 'ajuste' | 'merma' | 'devolucion'
@@ -20,6 +22,18 @@ const SOURCE_TO_UI: Record<string, UiMoveType> = {
   ADJUSTMENT:          'ajuste',
   RETURN:              'devolucion',
   MANUAL:              'merma',
+}
+
+function movementTypeFromSource(sourceType: string): 'IN' | 'OUT' {
+  switch (sourceType) {
+    case 'PURCHASE':
+    case 'OPENING_STOCK':
+    case 'RETURN':
+    case 'SALE_CANCEL':
+      return 'IN'
+    default:
+      return 'OUT'
+  }
 }
 
 function periodDates(period: Period): { current: string; previous: string; prevTo: string } {
@@ -271,7 +285,7 @@ export function registerInventoryIpc(): void {
         im."stockBefore"        AS stockBefore,
         im."stockAfter"         AS stockAfter,
         u.name                  AS userName,
-        COALESCE(im.note, s.folio) AS note
+        COALESCE(im.reason, im.note, s.folio) AS note
       FROM "InventoryMovement" im
       LEFT JOIN "Product" p ON p.id = im."productId"
       LEFT JOIN "User"    u ON u.id = im."userId"
@@ -315,6 +329,7 @@ export function registerInventoryIpc(): void {
       if (!product) throw new Error('Producto no encontrado.')
 
       const sourceType  = UI_TO_SOURCE[payload.type] ?? 'MANUAL'
+      const movementType = movementTypeFromSource(sourceType)
       const stockBefore = product.stock
       const stockAfter  = payload.type === 'entrada' || payload.type === 'devolucion'
         ? stockBefore + payload.qty
@@ -325,23 +340,33 @@ export function registerInventoryIpc(): void {
       db.transaction(() => {
         db.prepare(`
           INSERT INTO "InventoryMovement" (
-            "productId", "originalProductId", "sourceType", qty,
+            "publicId", type, "productId", "originalProductId", "sourceType", "sourceId", qty,
+            reason,
             "stockBefore", "stockAfter",
             "userId", note,
             "productPublicIdSnapshot", "productCodeSnapshot", "productNameSnapshot",
-            "unitCostSnapshot", "createdAt"
-          ) VALUES (?,?,?,?, ?,?, ?,?, ?,?,?, ?,?)
+            "unitCostSnapshot", "originDeviceId", "createdAt", "updatedAt"
+          ) VALUES (?,?,?,?,?,?,?, ?, ?,?, ?,?, ?,?,?, ?,?,?,?)
         `).run(
-          payload.productId, payload.productId, sourceType, payload.qty,
+          crypto.randomUUID(), movementType, payload.productId, payload.productId, sourceType, null, payload.qty,
+          payload.note ?? null,
           stockBefore, stockAfter,
           payload.userId ?? null, payload.note ?? null,
           product.publicId ?? null, product.sku ?? null, product.name,
-          product.cost, now
+          product.cost, null, now, now
         )
 
         db.prepare(`UPDATE "Product" SET stock = ?, "updatedAt" = ? WHERE id = ?`)
           .run(stockAfter, now, payload.productId)
       })()
+
+      // Get local movement id and push in background
+      const { id: movId } = db.prepare(
+        `SELECT id FROM "InventoryMovement" WHERE "productId" = ? AND "sourceType" = ? ORDER BY id DESC LIMIT 1`
+      ).get(payload.productId, sourceType) as { id: number }
+      pushMovementToSupabase(movId).catch(err =>
+        console.error('[inventory:registerMovement] Supabase sync failed, will retry via pushPending:', err)
+      )
 
       return { ok: true, stockBefore, stockAfter }
     }

@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { getLocalDb } from '../db/local-db'
-import { supabase } from '../supabase/client'
+import { supabase, supabaseAdmin } from '../supabase/client'
 
 const MAX_RETRIES = 3
 
@@ -53,6 +53,8 @@ type ServiceRemote = {
   duration_min?: number
   cost: number
   price: number
+  taxRateBp?: number
+  tax_rate_bp?: number
   profitPctBp?: number
   profit_pct_bp?: number
   active?: boolean
@@ -68,11 +70,329 @@ type ServiceSupplyRemote = {
   productId?: number
   product_id?: number
   qty: number
+  createdAt?: string
+  created_at?: string
+  updatedAt?: string
+  updated_at?: string
 }
+
+// ─── Type helpers ────────────────────────────────────────────────────────────
+
+type SaleRow = {
+  id: number; publicId: string; folio: string; status: string
+  subtotal: number; total: number; cashierId: number
+  createdAt: string; updatedAt: string
+}
+type SaleItemRow = {
+  id: number; publicId: string; salePublicId: string; itemType: string
+  productPublicId: string | null; servicePublicId: string | null
+  originalProductId: number | null; originalServiceId: number | null
+  qty: number; unitPrice: number; discount: number; lineTotal: number
+  lineSubtotal: number | null; lineTax: number; lineCostTotal: number | null; lineProfit: number | null
+  itemCodeSnapshot: string | null; itemNameSnapshot: string | null; itemCategorySnapshot: string | null
+  itemSkuSnapshot: string | null; itemBarcodeSnapshot: string | null
+  unitCostSnapshot: number | null; unitTaxRateBpSnapshot: number | null; unitProfitPctBpSnapshot: number | null
+  inventoryTracked: number; createdAt: string; updatedAt: string
+}
+type MovementRow = {
+  id: number; publicId: string | null; type: string | null
+  productId: number | null; originalProductId: number | null
+  sourceType: string; sourceId: number | null; qty: number
+  reason: string | null; stockBefore: number | null; stockAfter: number | null
+  userId: number | null; saleId: number | null; saleItemId: number | null
+  relatedServiceId: number | null; relatedServiceOriginalId: number | null
+  productPublicIdSnapshot: string | null; productCodeSnapshot: string
+  productNameSnapshot: string; relatedServiceNameSnapshot: string | null
+  unitCostSnapshot: number | null; metaJson: string
+  originDeviceId: string | null; createdAt: string; updatedAt: string | null
+}
+type PaymentRow = {
+  publicId: string; salePublicId: string; method: string; amount: number
+  createdAt: string; updatedAt: string
+}
+
+function toInventoryMovementType(sourceType: string): 'IN' | 'OUT' {
+  switch (sourceType) {
+    case 'PURCHASE':
+    case 'OPENING_STOCK':
+    case 'RETURN':
+    case 'SALE_CANCEL':
+      return 'IN'
+    default:
+      return 'OUT'
+  }
+}
+
+function toPaymentMethod(method: string): string {
+  switch (method.trim().toLowerCase()) {
+    case 'efectivo':
+      return 'CASH'
+    case 'tarjeta':
+      return 'CARD'
+    case 'transferencia':
+      return 'TRANSFER'
+    case 'mixto':
+      return 'MIXED'
+    default:
+      return method.trim().toUpperCase()
+  }
+}
+
+// ─── Push a single sale (and its items, movements, payment) to Supabase ──────
+
+export async function pushSaleToSupabase(localSaleId: number): Promise<void> {
+  const db = getLocalDb()
+
+  const sale = db.prepare(`SELECT * FROM "Sale" WHERE id = ?`).get(localSaleId) as SaleRow | undefined
+  if (!sale) return
+
+  // Local status → Supabase SaleStatus enum {OPEN, PAID, CANCELED, REFUNDED}
+  const STATUS_MAP: Record<string, string> = {
+    COMPLETED: 'PAID',
+    CANCELLED: 'CANCELED',
+    OPEN: 'OPEN',
+    REFUNDED: 'REFUNDED',
+  }
+
+  // 1. Upsert Sale
+  const { error: saleErr } = await supabaseAdmin
+    .from('Sale')
+    .upsert({
+      publicId: sale.publicId,
+      folio: sale.folio,
+      status: STATUS_MAP[sale.status] ?? 'PAID',
+      subtotal: sale.subtotal,
+      total: sale.total,
+      cashierId: sale.cashierId,
+      createdAt: sale.createdAt,
+      updatedAt: sale.updatedAt,
+    }, { onConflict: 'publicId' })
+  if (saleErr) throw new Error(`[push:Sale] ${saleErr.message}`)
+
+  // Resolve Supabase integer id (needed as FK for InventoryMovement)
+  const { data: saleRemote, error: saleIdErr } = await supabaseAdmin
+    .from('Sale').select('id').eq('publicId', sale.publicId).single()
+  if (saleIdErr || !saleRemote) throw new Error(`[push:Sale.id] ${saleIdErr?.message}`)
+  const remoteSaleId: number = (saleRemote as { id: number }).id
+
+  // 2. Upsert SaleItems
+  const items = db.prepare(
+    `SELECT * FROM "SaleItem" WHERE "salePublicId" = ?`
+  ).all(sale.publicId) as SaleItemRow[]
+
+  for (const item of items) {
+    const { error: itemErr } = await supabaseAdmin
+      .from('SaleItem')
+      .upsert({
+        publicId: item.publicId,
+        saleId: remoteSaleId,
+        itemType: item.itemType,
+        productId: item.originalProductId ?? null,
+        serviceId: item.originalServiceId ?? null,
+        originalProductId: item.originalProductId,
+        originalServiceId: item.originalServiceId,
+        catalogPublicId: item.productPublicId ?? item.servicePublicId ?? null,
+        qty: item.qty,
+        unitPrice: item.unitPrice,
+        discount: item.discount,
+        lineTotal: item.lineTotal,
+        lineSubtotal: item.lineSubtotal ?? (item.lineTotal - item.discount),
+        lineTax: item.lineTax,
+        lineCostTotal: item.lineCostTotal ?? 0,
+        lineProfit: item.lineProfit ?? 0,
+        itemCodeSnapshot: item.itemCodeSnapshot ?? 'SIN-CODIGO',
+        itemNameSnapshot: item.itemNameSnapshot ?? 'ITEM SIN NOMBRE',
+        itemCategorySnapshot: item.itemCategorySnapshot ?? null,
+        itemSkuSnapshot: item.itemSkuSnapshot ?? null,
+        itemBarcodeSnapshot: item.itemBarcodeSnapshot ?? null,
+        unitCostSnapshot: item.unitCostSnapshot ?? null,
+        unitTaxRateBpSnapshot: item.unitTaxRateBpSnapshot ?? null,
+        unitProfitPctBpSnapshot: item.unitProfitPctBpSnapshot ?? null,
+        inventoryTracked: Boolean(item.inventoryTracked),
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      }, { onConflict: 'publicId' })
+    if (itemErr) throw new Error(`[push:SaleItem ${item.publicId}] ${itemErr.message}`)
+  }
+
+  // 3. Push InventoryMovements — skip if already pushed (idempotency guard)
+  const movements = db.prepare(
+    `SELECT * FROM "InventoryMovement" WHERE "saleId" = ?`
+  ).all(sale.id) as MovementRow[]
+
+  if (movements.length > 0) {
+    const { count } = await supabaseAdmin
+      .from('InventoryMovement')
+      .select('id', { count: 'exact', head: true })
+      .eq('saleId', remoteSaleId)
+
+    if ((count ?? 0) === 0) {
+      for (const move of movements) {
+        // Resolve remote SaleItem id via publicId
+        let remoteSaleItemId: number | null = null
+        if (move.saleItemId != null) {
+          const localItem = items.find(i => i.id === move.saleItemId)
+          if (localItem) {
+            const { data: ri } = await supabaseAdmin
+              .from('SaleItem').select('id').eq('publicId', localItem.publicId).single()
+            remoteSaleItemId = (ri as { id: number } | null)?.id ?? null
+          }
+        }
+
+        const { error: moveErr } = await supabaseAdmin
+          .from('InventoryMovement')
+          .insert({
+            publicId: move.publicId ?? crypto.randomUUID(),
+            type: toInventoryMovementType(move.sourceType),
+            productId: move.productId ?? null,
+            originalProductId: move.originalProductId ?? null,
+            sourceType: move.sourceType,
+            sourceId: move.sourceId ?? null,
+            qty: move.qty,
+            reason: move.reason ?? null,
+            stockBefore: move.stockBefore ?? null,
+            stockAfter: move.stockAfter ?? null,
+            saleId: remoteSaleId,
+            saleItemId: remoteSaleItemId,
+            relatedServiceId: move.relatedServiceId ?? null,
+            relatedServiceOriginalId: move.relatedServiceOriginalId ?? null,
+            productPublicIdSnapshot: move.productPublicIdSnapshot ?? null,
+            productCodeSnapshot: move.productCodeSnapshot,
+            productNameSnapshot: move.productNameSnapshot,
+            relatedServiceNameSnapshot: move.relatedServiceNameSnapshot ?? null,
+            unitCostSnapshot: move.unitCostSnapshot ?? null,
+            metaJson: JSON.parse(move.metaJson || '{}'),
+            createdAt: move.createdAt,
+            updatedAt: move.updatedAt ?? move.createdAt,
+            originDeviceId: move.originDeviceId ?? null,
+          })
+        if (moveErr) throw new Error(`[push:InventoryMovement] ${moveErr.message}`)
+      }
+      // Mark sale movements as synced locally
+      db.prepare(`UPDATE "InventoryMovement" SET "syncedAt" = ? WHERE "saleId" = ?`)
+        .run(new Date().toISOString(), sale.id)
+    }
+  }
+
+  // 4. Upsert Payment
+  const payment = db.prepare(
+    `SELECT * FROM "Payment" WHERE "salePublicId" = ?`
+  ).get(sale.publicId) as PaymentRow | undefined
+
+  if (payment) {
+    const { error: payErr } = await supabaseAdmin
+      .from('Payment')
+      .upsert({
+        publicId: payment.publicId,
+        saleId: remoteSaleId,
+        method: toPaymentMethod(payment.method),
+        amount: payment.amount,
+        createdAt: payment.createdAt,
+        updatedAt: payment.updatedAt,
+      }, { onConflict: 'publicId' })
+    if (payErr) throw new Error(`[push:Payment] ${payErr.message}`)
+  }
+
+  // 5. Mark sale as synced locally
+  db.prepare(`UPDATE "Sale" SET "syncedAt" = ? WHERE id = ?`)
+    .run(new Date().toISOString(), localSaleId)
+}
+
+// ─── Push a single manual InventoryMovement (non-sale) to Supabase ───────────
+
+export async function pushMovementToSupabase(localMovId: number): Promise<void> {
+  const db = getLocalDb()
+
+  type MovRow = {
+    id: number; publicId: string | null; type: string | null
+    productId: number | null; originalProductId: number | null
+    sourceType: string; sourceId: number | null; qty: number
+    reason: string | null; stockBefore: number | null; stockAfter: number | null
+    userId: number | null; note: string | null; relatedServiceId: number | null
+    relatedServiceOriginalId: number | null
+    productPublicIdSnapshot: string | null; productCodeSnapshot: string | null
+    productNameSnapshot: string | null; relatedServiceNameSnapshot: string | null
+    unitCostSnapshot: number | null; metaJson: string
+    originDeviceId: string | null; createdAt: string; updatedAt: string | null
+  }
+
+  const mov = db.prepare(`SELECT * FROM "InventoryMovement" WHERE id = ?`).get(localMovId) as MovRow | undefined
+  if (!mov) return
+
+  const { error } = await supabaseAdmin
+    .from('InventoryMovement')
+    .insert({
+      publicId:                mov.publicId ?? crypto.randomUUID(),
+      type:                    toInventoryMovementType(mov.sourceType),
+      productId:               mov.productId ?? null,
+      originalProductId:       mov.originalProductId ?? null,
+      sourceType:              mov.sourceType,
+      sourceId:                mov.sourceId ?? null,
+      qty:                     mov.qty,
+      reason:                  mov.reason ?? mov.note ?? null,
+      stockBefore:             mov.stockBefore ?? null,
+      stockAfter:              mov.stockAfter ?? null,
+      relatedServiceId:        mov.relatedServiceId ?? null,
+      relatedServiceOriginalId: mov.relatedServiceOriginalId ?? null,
+      productPublicIdSnapshot: mov.productPublicIdSnapshot ?? null,
+      productCodeSnapshot:     mov.productCodeSnapshot ?? null,
+      productNameSnapshot:     mov.productNameSnapshot ?? null,
+      relatedServiceNameSnapshot: mov.relatedServiceNameSnapshot ?? null,
+      unitCostSnapshot:        mov.unitCostSnapshot ?? null,
+      metaJson:                JSON.parse(mov.metaJson || '{}'),
+      createdAt:               mov.createdAt,
+      updatedAt:               mov.updatedAt ?? mov.createdAt,
+      originDeviceId:          mov.originDeviceId ?? null,
+    })
+
+  if (error) throw new Error(`[push:InventoryMovement] ${error.message}`)
+
+  db.prepare(`UPDATE "InventoryMovement" SET "syncedAt" = ? WHERE id = ?`)
+    .run(new Date().toISOString(), localMovId)
+}
+
+// ─── Push all locally unsynced sales and manual movements ────────────────────
 
 export async function pushPending(): Promise<{ pushed: number; failed: number }> {
   void MAX_RETRIES
-  return { pushed: 0, failed: 0 }
+  const db = getLocalDb()
+
+  let pushed = 0
+  let failed = 0
+
+  // Unsynced sales
+  const pendingSales = db.prepare(
+    `SELECT id FROM "Sale" WHERE "syncedAt" IS NULL ORDER BY "createdAt" ASC LIMIT 50`
+  ).all() as { id: number }[]
+
+  for (const { id } of pendingSales) {
+    try {
+      await pushSaleToSupabase(id)
+      pushed++
+    } catch (err) {
+      console.error(`[pushPending] Sale id=${id}:`, err)
+      failed++
+    }
+  }
+
+  // Unsynced non-sale movements (PURCHASE, ADJUSTMENT, RETURN, MANUAL, etc.)
+  const pendingMoves = db.prepare(
+    `SELECT id FROM "InventoryMovement"
+     WHERE "syncedAt" IS NULL AND "saleId" IS NULL
+     ORDER BY "createdAt" ASC LIMIT 100`
+  ).all() as { id: number }[]
+
+  for (const { id } of pendingMoves) {
+    try {
+      await pushMovementToSupabase(id)
+      pushed++
+    } catch (err) {
+      console.error(`[pushPending] Movement id=${id}:`, err)
+      failed++
+    }
+  }
+
+  return { pushed, failed }
 }
 
 async function fetchRemoteCategories(): Promise<CategoryRemote[]> {
@@ -138,16 +458,16 @@ function replaceLocalCatalogFromRemote(snapshot: {
   const insertService = db.prepare(`
     INSERT INTO "Service" (
       id, "publicId", code, name, "durationMin", cost, price,
-      "profitPctBp", active, "createdAt", "updatedAt", "deletedAt"
+      "taxRateBp", "profitPctBp", active, "createdAt", "updatedAt", "deletedAt"
     ) VALUES (
       @id, @publicId, @code, @name, @durationMin, @cost, @price,
-      @profitPctBp, @active, @createdAt, @updatedAt, @deletedAt
+      @taxRateBp, @profitPctBp, @active, @createdAt, @updatedAt, @deletedAt
     )
   `)
 
   const insertServiceSupply = db.prepare(`
-    INSERT OR IGNORE INTO "ServiceSupply" ("serviceId", "productId", qty)
-    VALUES (@serviceId, @productId, @qty)
+    INSERT OR IGNORE INTO "ServiceSupply" ("serviceId", "productId", qty, "createdAt", "updatedAt")
+    VALUES (@serviceId, @productId, @qty, @createdAt, @updatedAt)
   `)
 
   db.transaction(() => {
@@ -200,6 +520,7 @@ function replaceLocalCatalogFromRemote(snapshot: {
         durationMin: row.durationMin ?? row.duration_min ?? 0,
         cost: row.cost,
         price: row.price,
+        taxRateBp: row.taxRateBp ?? row.tax_rate_bp ?? 0,
         profitPctBp: row.profitPctBp ?? row.profit_pct_bp ?? 0,
         active: (row.active ?? true) ? 1 : 0,
         createdAt: row.createdAt ?? now,
@@ -212,7 +533,13 @@ function replaceLocalCatalogFromRemote(snapshot: {
       const serviceId = row.serviceId ?? row.service_id
       const productId = row.productId ?? row.product_id
       if (serviceId == null || productId == null) continue
-      insertServiceSupply.run({ serviceId, productId, qty: row.qty })
+      insertServiceSupply.run({
+        serviceId,
+        productId,
+        qty: row.qty,
+        createdAt: row.createdAt ?? row.created_at ?? now,
+        updatedAt: row.updatedAt ?? row.updated_at ?? row.createdAt ?? row.created_at ?? now
+      })
     }
   })()
 }
@@ -255,12 +582,15 @@ export function registerSyncIpc(): void {
 
   ipcMain.handle('sync:pullAll', async () => {
     lastConflicts = []
-    const counts = await pullRemoteCatalog()
+    const [counts, push] = await Promise.all([
+      pullRemoteCatalog(),
+      pushPending(),
+    ])
 
     return {
       ok: true,
       syncedAt: new Date().toISOString(),
-      push: { pushed: 0, failed: 0, skipped: true },
+      push,
       conflictCount: 0,
       counts
     }
