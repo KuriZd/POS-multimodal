@@ -144,11 +144,12 @@ type MovementModalProps = {
 function MovementModal({ products, userId, onClose, onSaved }: MovementModalProps): JSX.Element {
   const [search, setSearch]       = useState('')
   const [productId, setProductId] = useState<number | null>(null)
-  const [type, setType]   = useState<'entrada' | 'ajuste' | 'merma' | 'devolucion'>('entrada')
-  const [qty, setQty]     = useState(1)
-  const [note, setNote]   = useState('')
-  const [saving, setSaving] = useState(false)
-  const [error, setError]   = useState<string | null>(null)
+  const [type, setType]       = useState<'entrada' | 'ajuste' | 'merma' | 'devolucion'>('entrada')
+  const [qty, setQty]         = useState(1)
+  const [realQty, setRealQty] = useState<number | ''>('')
+  const [note, setNote]       = useState('')
+  const [saving, setSaving]   = useState(false)
+  const [error, setError]     = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -160,12 +161,27 @@ function MovementModal({ products, userId, onClose, onSaved }: MovementModalProp
 
   const selected = products.find(p => p.id === productId) ?? null
 
+  // Preview for ajuste
+  const isAjuste = type === 'ajuste'
+  const realQtyNum = typeof realQty === 'number' ? realQty : NaN
+  const ajusteDelta = selected && !isNaN(realQtyNum) ? realQtyNum - selected.stock : null
+
   async function handleSave(): Promise<void> {
     if (!productId) { setError('Selecciona un producto.'); return }
-    if (qty < 1)    { setError('La cantidad debe ser mayor a 0.'); return }
+    if (isAjuste) {
+      if (realQty === '' || isNaN(realQtyNum) || realQtyNum < 0) {
+        setError('Ingresa la cantidad real en inventario (mínimo 0).'); return
+      }
+    } else if (qty < 1) {
+      setError('La cantidad debe ser mayor a 0.'); return
+    }
     try {
       setSaving(true)
-      await window.pos.inventory.registerMovement({ productId, type, qty, userId, note: note.trim() || undefined })
+      await window.pos.inventory.registerMovement({
+        productId, type, qty,
+        ...(isAjuste ? { realQty: realQtyNum } : {}),
+        userId, note: note.trim() || undefined
+      })
       onSaved()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al registrar.')
@@ -268,19 +284,49 @@ function MovementModal({ products, userId, onClose, onSaved }: MovementModalProp
             </div>
 
             {/* Qty */}
-            <div className={styles.moveFieldLabel}>Cantidad</div>
-            <div className={styles.moveQtyWrap}>
-              <button type="button" className={styles.moveQtyBtn}
-                onClick={() => setQty(q => Math.max(1, q - 1))} disabled={saving}>−</button>
-              <input
-                type="number" min={1} value={qty}
-                onChange={e => setQty(Math.max(1, Number(e.target.value)))}
-                disabled={saving}
-                className={styles.moveQtyInput}
-              />
-              <button type="button" className={styles.moveQtyBtn}
-                onClick={() => setQty(q => q + 1)} disabled={saving}>+</button>
-            </div>
+            {isAjuste ? (
+              <>
+                <div className={styles.moveFieldLabel}>Cantidad real en inventario</div>
+                <div className={styles.moveQtyWrap}>
+                  <input
+                    type="number"
+                    min={0}
+                    value={realQty}
+                    placeholder={selected ? String(selected.stock) : '0'}
+                    onChange={e => setRealQty(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
+                    onFocus={e => e.target.select()}
+                    disabled={saving}
+                    className={`${styles.moveQtyInput} ${styles.moveQtyInputFull}`}
+                  />
+                </div>
+                {selected && ajusteDelta !== null && !isNaN(ajusteDelta) && (
+                  <div className={`${styles.ajustePreview} ${ajusteDelta > 0 ? styles.ajustePos : ajusteDelta < 0 ? styles.ajusteNeg : styles.ajusteEqual}`}>
+                    <span>Stock actual: <strong>{selected.stock}</strong></span>
+                    <span>→</span>
+                    <span>Nuevo stock: <strong>{realQtyNum}</strong></span>
+                    <span className={styles.ajusteDelta}>
+                      {ajusteDelta > 0 ? `+${ajusteDelta}` : ajusteDelta < 0 ? `${ajusteDelta}` : 'Sin cambio'}
+                    </span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className={styles.moveFieldLabel}>Cantidad</div>
+                <div className={styles.moveQtyWrap}>
+                  <button type="button" className={styles.moveQtyBtn}
+                    onClick={() => setQty(q => Math.max(1, q - 1))} disabled={saving}>−</button>
+                  <input
+                    type="number" min={1} value={qty}
+                    onChange={e => setQty(Math.max(1, Number(e.target.value)))}
+                    disabled={saving}
+                    className={styles.moveQtyInput}
+                  />
+                  <button type="button" className={styles.moveQtyBtn}
+                    onClick={() => setQty(q => q + 1)} disabled={saving}>+</button>
+                </div>
+              </>
+            )}
 
             {/* Note */}
             <div className={styles.moveFieldLabel}>Nota <span className={styles.moveFieldOptional}>(opcional)</span></div>

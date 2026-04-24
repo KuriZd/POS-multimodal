@@ -316,6 +316,7 @@ export function registerInventoryIpc(): void {
       productId: number
       type: 'entrada' | 'ajuste' | 'merma' | 'devolucion'
       qty: number
+      realQty?: number
       userId?: number
       note?: string
     }) => {
@@ -328,13 +329,23 @@ export function registerInventoryIpc(): void {
 
       if (!product) throw new Error('Producto no encontrado.')
 
-      const sourceType  = UI_TO_SOURCE[payload.type] ?? 'MANUAL'
-      const movementType = movementTypeFromSource(sourceType)
-      const stockBefore = product.stock
-      const stockAfter  = payload.type === 'entrada' || payload.type === 'devolucion'
-        ? stockBefore + payload.qty
-        : Math.max(0, stockBefore - payload.qty)
+      const sourceType   = UI_TO_SOURCE[payload.type] ?? 'MANUAL'
+      const stockBefore  = product.stock
 
+      // For ajuste with realQty: set stock directly, derive recorded qty from the difference
+      let stockAfter: number
+      let recordedQty: number
+      if (payload.type === 'ajuste' && payload.realQty !== undefined) {
+        stockAfter  = Math.max(0, payload.realQty)
+        recordedQty = Math.abs(stockAfter - stockBefore)
+      } else {
+        recordedQty = payload.qty
+        stockAfter  = payload.type === 'entrada' || payload.type === 'devolucion'
+          ? stockBefore + recordedQty
+          : Math.max(0, stockBefore - recordedQty)
+      }
+
+      const movementType = stockAfter >= stockBefore ? 'IN' : 'OUT'
       const now = new Date().toISOString()
 
       db.transaction(() => {
@@ -348,7 +359,7 @@ export function registerInventoryIpc(): void {
             "unitCostSnapshot", "originDeviceId", "createdAt", "updatedAt"
           ) VALUES (?,?,?,?,?,?,?, ?, ?,?, ?,?, ?,?,?, ?,?,?,?)
         `).run(
-          crypto.randomUUID(), movementType, payload.productId, payload.productId, sourceType, null, payload.qty,
+          crypto.randomUUID(), movementType, payload.productId, payload.productId, sourceType, null, recordedQty,
           payload.note ?? null,
           stockBefore, stockAfter,
           payload.userId ?? null, payload.note ?? null,

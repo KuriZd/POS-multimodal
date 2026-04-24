@@ -648,6 +648,32 @@
   color: #1a1f36;
 }
 
+.qtyInput {
+  width: 36px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a1f36;
+  font-family: inherit;
+  border: 1.5px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  outline: none;
+  padding: 2px 2px;
+  transition: border-color 0.12s, background 0.12s;
+  -moz-appearance: textfield;
+}
+
+.qtyInput::-webkit-inner-spin-button,
+.qtyInput::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+.qtyInput:focus {
+  border-color: #5b79ff;
+  background: #fff;
+}
+
 .cartRowRight {
   display: flex;
   align-items: center;

@@ -271,13 +271,26 @@ function ProductCard({ item, onAdd }: ProductCardProps): ReactElement {
 type CartRowProps = {
   entry: CartEntry
   onQtyChange: (uid: string, delta: number) => void
+  onQtySet: (uid: string, qty: number) => void
   onRemove: (uid: string) => void
   onToggleExpand: (uid: string) => void
   onSizeChange: (uid: string, size: ServiceSize) => void
 }
 
-function CartRow({ entry, onQtyChange, onRemove, onToggleExpand, onSizeChange }: CartRowProps): ReactElement {
+function CartRow({ entry, onQtyChange, onQtySet, onRemove, onToggleExpand, onSizeChange }: CartRowProps): ReactElement {
   const hasSize = entry.size !== undefined
+  const [inputVal, setInputVal] = useState(String(entry.qty))
+
+  useEffect(() => { setInputVal(String(entry.qty)) }, [entry.qty])
+
+  function handleQtyBlur(): void {
+    const parsed = parseInt(inputVal, 10)
+    if (!isNaN(parsed) && parsed >= 1) {
+      onQtySet(entry.uid, parsed)
+    } else {
+      setInputVal(String(entry.qty))
+    }
+  }
 
   return (
     <div className={`${styles.cartRow} ${entry.type === 'service' ? styles.cartRowSvc : ''}`}>
@@ -291,7 +304,17 @@ function CartRow({ entry, onQtyChange, onRemove, onToggleExpand, onSizeChange }:
           <button className={styles.qtyBtn} onClick={() => onQtyChange(entry.uid, -1)} aria-label="Reducir">
             <FiMinus size={12} />
           </button>
-          <span className={styles.qtyValue}>{entry.qty}</span>
+          <input
+            className={styles.qtyInput}
+            type="number"
+            min="1"
+            value={inputVal}
+            onChange={e => setInputVal(e.target.value)}
+            onFocus={e => e.target.select()}
+            onBlur={handleQtyBlur}
+            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+            aria-label="Cantidad"
+          />
           <button className={styles.qtyBtn} onClick={() => onQtyChange(entry.uid, +1)} aria-label="Aumentar">
             <FiPlus size={12} />
           </button>
@@ -767,6 +790,10 @@ export default function SalesPage({ user }: { user: AuthUser }): ReactElement {
     )
   }, [])
 
+  const setQty = useCallback((entryUid: string, qty: number) => {
+    setCart(prev => prev.map(e => e.uid === entryUid ? { ...e, qty } : e))
+  }, [])
+
   const removeEntry = useCallback((entryUid: string) => {
     setCart(prev => prev.filter(e => e.uid !== entryUid))
   }, [])
@@ -912,6 +939,7 @@ export default function SalesPage({ user }: { user: AuthUser }): ReactElement {
                   key={entry.uid}
                   entry={entry}
                   onQtyChange={changeQty}
+                  onQtySet={setQty}
                   onRemove={removeEntry}
                   onToggleExpand={toggleExpand}
                   onSizeChange={changeSize}

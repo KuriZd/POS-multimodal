@@ -47,7 +47,7 @@ type RecentSale = {
 
 type InventoryMovementPayload = {
   productId: number; type: 'entrada' | 'ajuste' | 'merma' | 'devolucion'
-  qty: number; userId?: number; note?: string
+  qty: number; realQty?: number; userId?: number; note?: string
 }
 
 interface SyncConflict {

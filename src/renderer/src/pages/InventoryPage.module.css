@@ -1380,6 +1380,38 @@
   outline: none;
 }
 
+.moveQtyInputFull {
+  width: 100%;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9px;
+  padding: 0 12px;
+  transition: border-color 0.15s;
+}
+
+.moveQtyInputFull:focus {
+  border-color: #5b79ff;
+}
+
+.ajustePreview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  flex-wrap: wrap;
+}
+
+.ajustePos  { background: #edfaf4; color: #1a7a50; border: 1px solid #a7f3d0; }
+.ajusteNeg  { background: #fff5f0; color: #b91c1c; border: 1px solid #fca5a5; }
+.ajusteEqual{ background: #f4f6fb; color: #6a7190; border: 1px solid #e2e6f0; }
+
+.ajusteDelta {
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 800;
+}
+
 .moveNoteInput {
   width: 100%;
   padding: 9px 12px;
