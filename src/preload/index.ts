@@ -1,6 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import { getPublicRuntimeConfig } from '../shared/runtime-config'
+
+const publicRuntimeConfig = getPublicRuntimeConfig()
 
 contextBridge.exposeInMainWorld('pos', {
+  config: {
+    getPublic: () => publicRuntimeConfig
+  },
   auth: {
     login: (username: string, password: string) =>
       ipcRenderer.invoke('auth:login', username, password),

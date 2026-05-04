@@ -79,6 +79,13 @@ interface ProductLookup {
 
 interface Window {
   pos: {
+    config: {
+      getPublic: () => {
+        supabaseUrl: string
+        supabaseAnonKey: string
+        source: string
+      }
+    }
     dashboard: {
       stats: () => Promise<DashboardStats>
     }

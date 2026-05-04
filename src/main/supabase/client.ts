@@ -1,20 +1,20 @@
-// src/main/supabase/client.ts
-import 'dotenv/config'
 import { createClient } from '@supabase/supabase-js'
+import { getRuntimeConfig } from '../../shared/runtime-config'
 
-const supabaseUrl = process.env.SUPABASE_URL
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Faltan SUPABASE_URL o SUPABASE_ANON_KEY')
-}
+const runtimeConfig = getRuntimeConfig()
+const supabaseUrl = runtimeConfig.supabaseUrl
+const supabaseAnonKey = runtimeConfig.supabaseAnonKey
+const supabaseServiceRoleKey = runtimeConfig.supabaseServiceRoleKey
 
 const clientOptions = {
   auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false }
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, clientOptions)
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder',
+  clientOptions
+)
 
 // Bypasses RLS — usar solo en el proceso principal, nunca exponer al renderer
 export const supabaseAdmin = supabaseServiceRoleKey
