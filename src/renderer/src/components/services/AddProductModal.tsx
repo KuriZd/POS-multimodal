@@ -6,7 +6,8 @@ import {
   type JSX,
   type MouseEvent,
   type ChangeEvent,
-  type RefObject
+  type RefObject,
+  type KeyboardEvent as ReactKeyboardEvent
 } from 'react'
 import { createPortal } from 'react-dom'
 import { FiX, FiSave, FiImage, FiHelpCircle, FiPlus, FiCheck } from 'react-icons/fi'
@@ -17,6 +18,7 @@ import styles from './AddProductModal.module.css'
 import { productRepository, type CreateProductPayload } from '../../repositories/productRepository'
 import { supabase } from '../../lib/supabaseClient'
 import { bpToPctString, formatNumber, percentToBp } from '../../lib/formatters'
+import { useBarcodeScanner } from '../../hooks/useBarcodeScanner'
 
 type Category = { id: number; name: string }
 
@@ -489,6 +491,8 @@ type ProductFormProps = {
   onGenerateCode: () => void
   onDownloadQr: () => void
   onCodeBlur: () => void
+  onCodeKeyDown?: (e: ReactKeyboardEvent<HTMLInputElement>) => void
+  codeInputRef?: RefObject<HTMLInputElement | null>
   onBuyPriceChange: (value: string) => void
   onSellPriceChange: (value: string) => void
   onProfitPctChange: (value: string) => void
@@ -509,6 +513,8 @@ function ProductForm({
   onGenerateCode,
   onDownloadQr,
   onCodeBlur,
+  onCodeKeyDown,
+  codeInputRef,
   onBuyPriceChange,
   onSellPriceChange,
   onProfitPctChange,
@@ -530,11 +536,13 @@ function ProductForm({
 
           <div className={styles.codeWrap}>
             <input
+              ref={codeInputRef}
               className={styles.input}
               value={form.code}
               onChange={(e) => setField('code', e.target.value)}
               onBlur={onCodeBlur}
-              placeholder=""
+              onKeyDown={onCodeKeyDown}
+              placeholder="Escanea o escribe el código"
             />
 
             <div className={styles.codeActions}>
@@ -804,9 +812,13 @@ export default function AddProductModal({
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [savingCategory, setSavingCategory] = useState(false)
+  const [scanNotice, setScanNotice] = useState<string | null>(null)
+  const [isLookingUp, setIsLookingUp] = useState(false)
 
   const qrRenderRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const codeInputRef = useRef<HTMLInputElement | null>(null)
+  const scanNoticeTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     return () => {
@@ -823,6 +835,12 @@ export default function AddProductModal({
   const closeAll = useCallback(() => {
     setSaveError(null)
     setSyncNotice(null)
+    setScanNotice(null)
+    setIsLookingUp(false)
+    if (scanNoticeTimerRef.current !== null) {
+      window.clearTimeout(scanNoticeTimerRef.current)
+      scanNoticeTimerRef.current = null
+    }
     setIsSaving(false)
     setIsLoadingProduct(false)
     setLoadedFrom(null)
@@ -855,6 +873,8 @@ export default function AddProductModal({
 
     setSaveError(null)
     setSyncNotice(null)
+    setScanNotice(null)
+    setIsLookingUp(false)
     setSellPriceError(null)
     setStockAlert(null)
     setSkuError(null)
@@ -918,6 +938,96 @@ export default function AddProductModal({
       cancelled = true
     }
   }, [open, effectiveProductId])
+
+  // Auto-focus code input when modal opens in add mode
+  useEffect(() => {
+    if (!open || isEditMode) return
+    const timer = window.setTimeout(() => codeInputRef.current?.focus(), 50)
+    return () => window.clearTimeout(timer)
+  }, [open, isEditMode])
+
+  function parseScanCode(raw: string): { sku: string; name?: string } | null {
+    const trimmed = raw.trim()
+    if (!trimmed) return null
+    try {
+      const parsed = JSON.parse(trimmed) as unknown
+      if (
+        parsed !== null &&
+        typeof parsed === 'object' &&
+        'sku' in parsed &&
+        typeof (parsed as Record<string, unknown>).sku === 'string'
+      ) {
+        const p = parsed as { sku: string; name?: unknown }
+        return { sku: p.sku, name: typeof p.name === 'string' ? p.name : undefined }
+      }
+    } catch {
+      // plain barcode string
+    }
+    return { sku: trimmed }
+  }
+
+  function showScanNotice(text: string): void {
+    if (scanNoticeTimerRef.current !== null) window.clearTimeout(scanNoticeTimerRef.current)
+    setScanNotice(text)
+    scanNoticeTimerRef.current = window.setTimeout(() => {
+      setScanNotice(null)
+      scanNoticeTimerRef.current = null
+    }, 4000)
+  }
+
+  async function lookupAndFill(sku: string, nameHint?: string): Promise<void> {
+    const normalized = sku.trim()
+    if (!normalized) return
+
+    setForm((prev) => ({ ...prev, code: normalized }))
+    setSkuError(null)
+
+    setIsLookingUp(true)
+    showScanNotice('Buscando producto...')
+
+    try {
+      const local = await tryLocalGetBySku(normalized)
+      const product = local ?? (await fetchSupabaseProductBySku(normalized))
+
+      if (product) {
+        setForm({
+          code: product.sku,
+          name: product.name,
+          stockMin: String(product.stockMin ?? 0),
+          stockMax: String(product.stockMax ?? 0),
+          buyPrice: fromCentsToInput(product.cost ?? 0),
+          sellPrice: fromCentsToInput(product.price ?? 0),
+          stock: String(product.stock ?? 0),
+          profitPct: bpToPctInput(product.profitPctBp ?? 0),
+          categoryId: null
+        })
+        showScanNotice('Producto encontrado — campos completados.')
+      } else {
+        if (nameHint) setForm((prev) => ({ ...prev, name: prev.name || nameHint }))
+        showScanNotice('Código escaneado. Producto no encontrado en catálogo.')
+      }
+    } catch {
+      showScanNotice('Código escaneado. Producto no encontrado en catálogo.')
+    } finally {
+      setIsLookingUp(false)
+    }
+  }
+
+  function handleGlobalScan(code: string): void {
+    if (!open || isEditMode) return
+    const parsed = parseScanCode(code)
+    if (parsed) void lookupAndFill(parsed.sku, parsed.name)
+  }
+
+  useBarcodeScanner(handleGlobalScan)
+
+  function handleCodeKeyDown(e: ReactKeyboardEvent<HTMLInputElement>): void {
+    if (e.key !== 'Enter') return
+    e.preventDefault()
+    const current = (e.currentTarget as HTMLInputElement).value
+    const parsed = parseScanCode(current)
+    if (parsed) void lookupAndFill(parsed.sku, parsed.name)
+  }
 
   if (!open) return null
 
@@ -1188,6 +1298,8 @@ export default function AddProductModal({
                 onGenerateCode={handleGenerateCode}
                 onDownloadQr={handleDownloadQr}
                 onCodeBlur={() => void validateSkuUniqueness(form.code)}
+                onCodeKeyDown={handleCodeKeyDown}
+                codeInputRef={codeInputRef}
                 onBuyPriceChange={handleBuyPriceChange}
                 onSellPriceChange={handleSellPriceChange}
                 onProfitPctChange={handleProfitPctChange}
@@ -1235,6 +1347,25 @@ export default function AddProductModal({
             {!isLoadingProduct && sourceLabel ? (
               <div style={{ padding: '0 16px', marginTop: 10, fontSize: 12, opacity: 0.7 }}>
                 {sourceLabel}
+              </div>
+            ) : null}
+
+            {scanNotice ? (
+              <div
+                style={{
+                  padding: '0 16px',
+                  marginTop: 8,
+                  fontSize: 12,
+                  color: isLookingUp
+                    ? '#555'
+                    : scanNotice.startsWith('Producto encontrado')
+                      ? '#166534'
+                      : '#b45309'
+                }}
+                role="status"
+                aria-live="polite"
+              >
+                {scanNotice}
               </div>
             ) : null}
 

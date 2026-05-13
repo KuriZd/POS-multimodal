@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type JSX } from 'react'
+import { useBarcodeScanner } from '../hooks/useBarcodeScanner'
 import {
   FiSearch, FiPlus, FiTrendingUp,
   FiAlertTriangle, FiPackage, FiDollarSign, FiBarChart2,
@@ -532,6 +533,30 @@ export default function InventoryPage({ user }: InventoryPageProps): JSX.Element
   }, [stats, period])
 
   const canManage = user.role === 'ADMIN' || user.role === 'SUPERVISOR'
+
+  function handleInventoryScan(raw: string): void {
+    if (showMoveModal || lowStockOpen || selectedProduct) return
+
+    let code = raw.trim()
+    try {
+      const parsed = JSON.parse(raw) as unknown
+      if (
+        parsed !== null &&
+        typeof parsed === 'object' &&
+        'sku' in parsed &&
+        typeof (parsed as Record<string, unknown>).sku === 'string'
+      ) {
+        code = (parsed as { sku: string }).sku
+      }
+    } catch {
+      // plain barcode — use as-is
+    }
+
+    if (!code) return
+    setSearch(code)
+  }
+
+  useBarcodeScanner(handleInventoryScan)
 
   return (
     <section className={styles.page}>

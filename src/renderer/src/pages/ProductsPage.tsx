@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
+import { useBarcodeScanner } from '../hooks/useBarcodeScanner'
 import btnAddIcon from '../assets/btnadd.png'
 import btnFiltroIcon from '../assets/btnfiltro.png'
 import styles from './ProductsPage.module.css'
@@ -537,6 +538,30 @@ export default function ProductsView(): JSX.Element {
       document.removeEventListener('keydown', onKeyDown)
     }
   }, [addMenuOpen])
+
+  function handlePageScan(raw: string): void {
+    if (productModalOpen || serviceModalOpen) return
+
+    let code = raw.trim()
+    try {
+      const parsed = JSON.parse(raw) as unknown
+      if (
+        parsed !== null &&
+        typeof parsed === 'object' &&
+        'sku' in parsed &&
+        typeof (parsed as Record<string, unknown>).sku === 'string'
+      ) {
+        code = (parsed as { sku: string }).sku
+      }
+    } catch {
+      // plain barcode — use as-is
+    }
+
+    if (!code) return
+    setSearch(code)
+  }
+
+  useBarcodeScanner(handlePageScan)
 
   const visibleProductItems = useMemo(() => sortProducts(productsData.items, filterKey), [productsData.items, filterKey])
   const visibleServiceItems = useMemo(() => sortServices(servicesData.items, filterKey), [servicesData.items, filterKey])
