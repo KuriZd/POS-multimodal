@@ -1,5 +1,5 @@
-appId: com.oscarzamudio.posmultimodal
-productName: POS Multimodal
+appId: com.papeleriadamian.pos
+productName: Papeleria Damian
 copyright: Copyright (c) 2026 Oscar Zamudio
 directories:
   buildResources: build
@@ -20,7 +20,7 @@ extraResources:
     to: pos-runtime.env.example
 win:
   icon: build/icon.ico
-  executableName: POSMultimodal
+  executableName: PapeleriaDamian
   target:
     - target: nsis
 nsis:

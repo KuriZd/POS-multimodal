@@ -12,8 +12,11 @@ import { registerDashboardIpc } from './ipc/dashboard.ipc'
 
 let mainWindow: BrowserWindow | null = null
 
+const APP_NAME = 'Papeleria Damian'
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
+    title: APP_NAME,
     width: 1200,
     height: 800,
     webPreferences: {
@@ -33,6 +36,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  app.setName(APP_NAME)
   getLocalDb()
   registerAuthIpc()
   registerUsersIpc()

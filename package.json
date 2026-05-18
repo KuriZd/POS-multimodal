@@ -1,10 +1,10 @@
 {
-  "name": "pos-multimodal",
+  "name": "papeleria-damian",
   "version": "1.2.0",
-  "description": "Punto de venta de escritorio con Electron, React, SQLite y Supabase",
+  "description": "Punto de venta de escritorio para Papeleria Damian",
   "main": "./out/main/index.js",
   "author": "Oscar Zamudio",
-  "homepage": "https://github.com/oscarzamudio/pos-multimodal",
+  "homepage": "https://github.com/KuriZd/Damians-POS_Desktop",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
